@@ -22,9 +22,7 @@
 declare(strict_types=1);
 
 namespace pocketmine\entity;
-
 interface EntityIds{
-
 	public const CHICKEN = 10;
 	public const COW = 11;
 	public const PIG = 12;
@@ -74,6 +72,7 @@ interface EntityIds{
 	public const AGENT = 56, LEARN_TO_CODE_MASCOT = 56;
 	public const VINDICATOR = 57;
 	public const PHANTOM = 58;
+	public const RAVAGER = 59;
 
 	public const ARMOR_STAND = 61;
 	public const TRIPOD_CAMERA = 62;
@@ -112,7 +111,6 @@ interface EntityIds{
 	public const HOPPER_MINECART = 96;
 	public const TNT_MINECART = 97;
 	public const CHEST_MINECART = 98;
-
 	public const COMMAND_BLOCK_MINECART = 100;
 	public const LINGERING_POTION = 101;
 	public const LLAMA_SPIT = 102;
@@ -127,4 +125,8 @@ interface EntityIds{
 	public const TROPICALFISH = 111, TROPICAL_FISH = 111;
 	public const COD = 112, FISH = 112;
 	public const PANDA = 113;
+	public const PILLAGER = 114;
+	public const VILLAGER_V2 = 115;
+	public const ZOMBIE_VILLAGER_V2 =116;
+	public const WANDERING_TRADER = 118;
 }
