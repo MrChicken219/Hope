@@ -1,13 +1,9 @@
+#!/bin/bash
+
 CHANNEL="alpha"
 BRANCH="master"
 NAME="Foxel"
 BUILD_URL=""
-
-ENABLE_GPG="no"
-PUBLICKEY_URL="http://cdn.pocketmine.net/pocketmine.asc"
-PUBLICKEY_FINGERPRINT="20D377AFC3F7535B3261AA4DCF48E7E52280B75B"
-PUBLICKEY_LONGID="${PUBLICKEY_FINGERPRINT: -16}"
-GPG_KEYSERVER="pgp.mit.edu"
 
 update=off
 forcecompile=off
@@ -90,7 +86,15 @@ if [ "$checkRoot" == "on" ]; then
 	fi
 fi
 
+if [ "$CHANNEL" == "soft" ]; then
+	NAME="Foxel-Soft"
+fi
 
+ENABLE_GPG="no"
+PUBLICKEY_URL="http://cdn.pocketmine.net/pocketmine.asc"
+PUBLICKEY_FINGERPRINT="20D377AFC3F7535B3261AA4DCF48E7E52280B75B"
+PUBLICKEY_LONGID="${PUBLICKEY_FINGERPRINT: -16}"
+GPG_KEYSERVER="pgp.mit.edu"
 
 function check_signature {
 	echo "[*] Checking signature of $1"
@@ -205,7 +209,9 @@ rm -f CONTRIBUTING.md
 rm -f LICENSE
 rm -f start.sh
 rm -f start.bat
-rm -f Foxel.php
+
+#Old installations
+rm -f PocketMine-MP.php
 rm -r -f src/
 
 echo -n "[2/3] Downloading $NAME phar..."
@@ -225,6 +231,7 @@ fi
 
 chmod +x compile.sh
 chmod +x start.sh
+
 echo " done!"
 
 if [ "$ENABLE_GPG" == "yes" ]; then
@@ -263,23 +270,30 @@ else
 
 		echo -n "... downloading $PHP_VERSION ..."
 		download_file "https://jenkins.pmmp.io/job/PHP-$PHP_VERSION-Aggregate/lastSuccessfulBuild/artifact/PHP-$PHP_VERSION-$PLATFORM.tar.gz" | tar -zx > /dev/null 2>&1
+
 		chmod +x ./bin/php7/bin/*
 		if [ -f ./bin/composer ]; then
 			chmod +x ./bin/composer
 		fi
+
 		echo -n " updating php.ini..."
+
 		sed -i'.bak' "s/date.timezone=.*/date.timezone=$(date +%Z)/" bin/php7/bin/php.ini
+
 		EXTENSION_DIR=$(find "$(pwd)/bin" -name *debug-zts*) #make sure this only captures from `bin` in case the user renamed their old binary folder
 		#Modify extension_dir directive if it exists, otherwise add it
 		LF=$'\n'
 		grep -q '^extension_dir' bin/php7/bin/php.ini && sed -i'bak' "s{^extension_dir=.*{extension_dir=\"$EXTENSION_DIR\"{" bin/php7/bin/php.ini || sed -i'bak' "1s{^{extension_dir=\"$EXTENSION_DIR\"\\$LF{" bin/php7/bin/php.ini
+
 		echo -n " checking..."
+
 		if [ "$(./bin/php7/bin/php -r 'echo 1;' 2>/dev/null)" == "1" ]; then
 			echo " done"
 			alldone=yes
 		else
 			echo " downloaded PHP build doesn't work on this platform!"
 		fi
+
 		break
 	done
 	if [ "$alldone" == "no" ]; then
@@ -289,6 +303,8 @@ else
 		exec "./compile.sh"
 	fi
 fi
+
 rm compile.sh
+
 echo "[*] Everything done! Run ./start.sh to start $NAME"
 exit 0
