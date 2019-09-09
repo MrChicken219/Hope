@@ -72,7 +72,6 @@ interface EntityIds{
 	public const AGENT = 56, LEARN_TO_CODE_MASCOT = 56;
 	public const VINDICATOR = 57;
 	public const PHANTOM = 58;
-	public const RAVAGER = 59;
 
 	public const ARMOR_STAND = 61;
 	public const TRIPOD_CAMERA = 62;
@@ -125,8 +124,4 @@ interface EntityIds{
 	public const TROPICALFISH = 111, TROPICAL_FISH = 111;
 	public const COD = 112, FISH = 112;
 	public const PANDA = 113;
-	public const PILLAGER = 114;
-	public const VILLAGER_V2 = 115;
-	public const ZOMBIE_VILLAGER_V2 =116;
-	public const WANDERING_TRADER = 118;
 }
