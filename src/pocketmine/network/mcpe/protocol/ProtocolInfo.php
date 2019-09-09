@@ -26,7 +26,10 @@ namespace pocketmine\network\mcpe\protocol;
 /**
  * Version numbers and packet IDs for the current Minecraft PE protocol
  */
-interface ProtocolInfo{
+interface ProtocolInfo {
+
+    public const PROTOCOL_1_12 = 361;
+    public const PROTOCOL_1_13 = 371;
 
 	/**
 	 * NOTE TO DEVELOPERS
@@ -40,6 +43,10 @@ interface ProtocolInfo{
 	 * Actual Minecraft: PE protocol version
 	 */
 	public const CURRENT_PROTOCOL = 361;
+
+	public const ACCEPTED_PROTOCOLS = [self::PROTOCOL_1_12, self::PROTOCOL_1_13];
+
+
 	/**
 	 * Current Minecraft PE version reported by the server. This is usually the earliest currently supported version.
 	 */

@@ -44,6 +44,9 @@ class StartGamePacket extends DataPacket{
 	/** @var string|null */
 	private static $itemTableCache = null;
 
+	/** @var int $protocol */
+	public $protocol;
+
 	/** @var int */
 	public $entityUniqueId;
 	/** @var int */
@@ -274,7 +277,7 @@ class StartGamePacket extends DataPacket{
 		if($this->blockTable === null){
 			if(self::$blockTableCache === null){
 				//this is a really nasty hack, but it'll do for now
-				self::$blockTableCache = self::serializeBlockTable(RuntimeBlockMapping::getBedrockKnownStates());
+				self::$blockTableCache = self::serializeBlockTable(RuntimeBlockMapping::getBedrockKnownStates($this->protocol));
 			}
 			$this->put(self::$blockTableCache);
 		}else{

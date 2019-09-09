@@ -1549,16 +1549,6 @@ class Server{
 			$this->baseLang = new BaseLang($this->getConfigString("language", $this->getProperty("settings.language", BaseLang::FALLBACK_LANGUAGE)));
 			$this->logger->info($this->getLanguage()->translateString("language.selected", [$this->getLanguage()->getName(), $this->getLanguage()->getLang()]));
 
-			if(\pocketmine\IS_DEVELOPMENT_BUILD and !((bool) $this->getProperty("settings.enable-dev-builds", false))){
-				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error1", [\pocketmine\NAME]));
-				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error2"));
-				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error3"));
-				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error4", ["settings.enable-dev-builds"]));
-				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error5", ["https://github.com/pmmp/PocketMine-MP/releases"]));
-				$this->forceShutdown();
-				return;
-			}
-
 			if(((int) ini_get('zend.assertions')) !== -1){
 				$this->logger->warning("Debugging assertions are enabled, this may impact on performance. To disable them, set `zend.assertions = -1` in php.ini.");
 			}

@@ -14,7 +14,7 @@ if exist PocketMine-MP.phar (
 ) else if exist Foxel.phar (
     set FOXEL_FILE=Foxel.phar
 ) else if exist src\pocketmine\PocketMine.php (
-    set FOXEL_FILE=src\pocketmine\PocketMine.php
+    set FOXEL_FILE=start.php
 ) else (
 	echo PocketMine-MP.phar not found
 	echo Downloads can be found at https://github.com/FoxelTeam/Foxel/releases

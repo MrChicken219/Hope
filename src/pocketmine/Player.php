@@ -254,6 +254,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	protected $lastPingMeasure = 1;
 
+	/** @var int $protocol */
+	protected $protocol;
+
 
 	/** @var float */
 	public $creationTime = 0;
@@ -451,6 +454,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public function getUniqueId() : ?UUID{
 		return parent::getUniqueId();
 	}
+
+    /**
+     * @return int $protocol
+     */
+	public function getProtocol(): int {
+	    return $this->protocol;
+    }
 
 	public function getPlayer(){
 		return $this;
@@ -1874,7 +1884,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return false;
 		}
 
-		if($packet->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
+		if(!in_array($packet->protocol, ProtocolInfo::ACCEPTED_PROTOCOLS)){
 			if($packet->protocol < ProtocolInfo::CURRENT_PROTOCOL){
 				$this->sendPlayStatus(PlayStatusPacket::LOGIN_FAILED_CLIENT, true);
 			}else{
@@ -1896,6 +1906,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->username = TextFormat::clean($packet->username);
 		$this->displayName = $this->username;
 		$this->iusername = strtolower($this->username);
+		$this->protocol = $packet->protocol;
 
 		if($packet->locale !== null){
 			$this->locale = $packet->locale;
@@ -2132,6 +2143,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$spawnPosition = $this->getSpawn();
 
 		$pk = new StartGamePacket();
+		$pk->protocol = $this->getProtocol();
 		$pk->entityUniqueId = $this->id;
 		$pk->entityRuntimeId = $this->id;
 		$pk->playerGamemode = Player::getClientFriendlyGamemode($this->gamemode);

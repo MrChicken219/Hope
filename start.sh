@@ -36,6 +36,8 @@ if [ "$FOXEL_FILE" == "" ]; then
 		FOXEL_FILE="./PocketMine-MP.phar"
 	elif [ -f ./Foxel.phar ]; then
 		FOXEL_FILE="./Foxel.phar"
+	elif [ -f ./start.php ]; then
+	  FOXEL_FILE="./start.php"
 	else
 		echo "PocketMine-MP.phar not found"
 		echo "Downloads can be found at https://github.com/pmmp/PocketMine-MP/releases"
