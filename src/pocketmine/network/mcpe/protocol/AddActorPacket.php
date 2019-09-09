@@ -1,8 +1,30 @@
 <?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
 declare(strict_types=1);
+
 namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\utils\Binary;
+#include <rules/DataPacket.h>
+
 use pocketmine\entity\Attribute;
 use pocketmine\entity\EntityIds;
 use pocketmine\math\Vector3;
@@ -12,8 +34,16 @@ use function array_search;
 use function count;
 
 class AddActorPacket extends DataPacket{
+	
 	public const NETWORK_ID = ProtocolInfo::ADD_ACTOR_PACKET;
 
+	/*
+	 * Really really really really really nasty hack, to preserve backwards compatibility.
+	 * We can't transition to string IDs within 3.x because the network IDs (the integer ones) are exposed
+	 * to the API in some places (for god's sake shoghi).
+	 *
+	 * TODO: remove this on 4.0
+	 */
 	public const LEGACY_ID_MAP_BC = [
 		EntityIds::NPC => "minecraft:npc",
 		EntityIds::PLAYER => "minecraft:player",
@@ -112,12 +142,7 @@ class AddActorPacket extends DataPacket{
 		EntityIds::AGENT => "minecraft:agent",
 		EntityIds::ICE_BOMB => "minecraft:ice_bomb",
 		EntityIds::PHANTOM => "minecraft:phantom",
-		EntityIds::TRIPOD_CAMERA => "minecraft:tripod_camera",
-		EntityIds::VILLAGER_V2 => "minecraft:villager_v2",
-		EntityIds::PILLAGER => "minecraft:pillager",
-		EntityIds::RAVAGER => "minecraft:ravager",
-		EntityIds::ZOMBIE_VILLAGER_V2 => "minecraft:zombie_villager_v2",
-		EntityIds::WANDERING_TRADER => "minecraft:wandering_trader"
+		EntityIds::TRIPOD_CAMERA => "minecraft:tripod_camera"
 	];
 
 	/** @var int|null */
@@ -153,16 +178,16 @@ class AddActorPacket extends DataPacket{
 		}
 		$this->position = $this->getVector3();
 		$this->motion = $this->getVector3();
-		$this->pitch = ((\unpack("g", $this->get(4))[1]));
-		$this->yaw = ((\unpack("g", $this->get(4))[1]));
-		$this->headYaw = ((\unpack("g", $this->get(4))[1]));
+		$this->pitch = $this->getLFloat();
+		$this->yaw = $this->getLFloat();
+		$this->headYaw = $this->getLFloat();
 
 		$attrCount = $this->getUnsignedVarInt();
 		for($i = 0; $i < $attrCount; ++$i){
 			$name = $this->getString();
-			$min = ((\unpack("g", $this->get(4))[1]));
-			$current = ((\unpack("g", $this->get(4))[1]));
-			$max = ((\unpack("g", $this->get(4))[1]));
+			$min = $this->getLFloat();
+			$current = $this->getLFloat();
+			$max = $this->getLFloat();
 			$attr = Attribute::getAttributeByName($name);
 
 			if($attr !== null){
@@ -191,16 +216,16 @@ class AddActorPacket extends DataPacket{
 		$this->putString(self::LEGACY_ID_MAP_BC[$this->type]);
 		$this->putVector3($this->position);
 		$this->putVector3Nullable($this->motion);
-		($this->buffer .= (\pack("g", $this->pitch)));
-		($this->buffer .= (\pack("g", $this->yaw)));
-		($this->buffer .= (\pack("g", $this->headYaw)));
+		$this->putLFloat($this->pitch);
+		$this->putLFloat($this->yaw);
+		$this->putLFloat($this->headYaw);
 
 		$this->putUnsignedVarInt(count($this->attributes));
 		foreach($this->attributes as $attribute){
 			$this->putString($attribute->getName());
-			($this->buffer .= (\pack("g", $attribute->getMinValue())));
-			($this->buffer .= (\pack("g", $attribute->getValue())));
-			($this->buffer .= (\pack("g", $attribute->getMaxValue())));
+			$this->putLFloat($attribute->getMinValue());
+			$this->putLFloat($attribute->getValue());
+			$this->putLFloat($attribute->getMaxValue());
 		}
 
 		$this->putEntityMetadata($this->metadata);
