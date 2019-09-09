@@ -34,6 +34,7 @@ use function array_search;
 use function count;
 
 class AddActorPacket extends DataPacket{
+	
 	public const NETWORK_ID = ProtocolInfo::ADD_ACTOR_PACKET;
 
 	/*
