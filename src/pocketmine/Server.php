@@ -2411,7 +2411,7 @@ class Server{
 
 		$pk->entries[] = PlayerListEntry::createAdditionEntry($uuid, $entityId, $name, $skin, $xboxUserId);
 
-		$this->broadcastPacket($players ?? $this->playerList, $pk);
+		$this->broadcastPacket($players ?? $this->playerList, $pk, true);
 	}
 
 	/**
@@ -2422,7 +2422,7 @@ class Server{
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_REMOVE;
 		$pk->entries[] = PlayerListEntry::createRemovalEntry($uuid);
-		$this->broadcastPacket($players ?? $this->playerList, $pk);
+		$this->broadcastPacket($players ?? $this->playerList, $pk, true);
 	}
 
 	/**
@@ -2431,6 +2431,7 @@ class Server{
 	public function sendFullPlayerListData(Player $p){
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
+		$pk->protocol = $p->getProtocol();
 		foreach($this->playerList as $player){
 			$pk->entries[] = PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkin(), $player->getXuid());
 		}

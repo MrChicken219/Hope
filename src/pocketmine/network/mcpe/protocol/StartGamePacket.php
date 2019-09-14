@@ -270,7 +270,7 @@ class StartGamePacket extends DataPacket{
 		    $this->putString(""); // Vanilla version
         }
 
-		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_8) {
+		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_13) {
             $this->putByte(0); // unknown
             $this->putByte(1); // unknown
             $this->putLFloat(0); // unknown

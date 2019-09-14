@@ -30,7 +30,10 @@ interface ProtocolInfo {
 
     public const PROTOCOL_1_12 = 361;
     public const PROTOCOL_1_13 = 371;
-    public const PROTOCOL_1_13_0_8 = 386;
+
+    // beta protocols
+    public const PROTOCOL_1_13_0_9 = 385;
+    public const PROTOCOL_1_13_0_13 = 386;
 
 	/**
 	 * NOTE TO DEVELOPERS
@@ -50,8 +53,9 @@ interface ProtocolInfo {
      */
 	public const ACCEPTED_PROTOCOLS = [
 	    self::PROTOCOL_1_12,
-        self::PROTOCOL_1_13, 385,
-        self::PROTOCOL_1_13_0_8
+        self::PROTOCOL_1_13,
+        self::PROTOCOL_1_13_0_9,
+        self::PROTOCOL_1_13_0_13
     ];
 
     /**
