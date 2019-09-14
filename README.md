@@ -7,7 +7,7 @@ A free server software for Minecraft: Bedrock Edition. Foxel is a fork of [pmmp]
 | :---: |
 | [![Discord](https://img.shields.io/discord/427472879072968714.svg?style=flat-square&label=discord&colorB=7289da)](https://discord.gg/uK7Qgr4)|
 
-##Multi Version:
+## Multi Version:
 -Support 1.12
 -Support 1.13 (Dev)
 ## Why should you choose Foxel?
