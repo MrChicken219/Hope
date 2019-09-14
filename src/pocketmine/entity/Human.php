@@ -183,7 +183,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		$pk = new PlayerSkinPacket();
 		$pk->uuid = $this->getUniqueId();
 		$pk->skin = $this->skin;
-		$this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk);
+		$this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk, true);
 	}
 
 	public function jump() : void{

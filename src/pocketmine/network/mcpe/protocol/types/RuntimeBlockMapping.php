@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\protocol\types;
 
 use pocketmine\block\BlockIds;
-use pocketmine\nbt\BigEndianNBTStream;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\CompoundTag;
@@ -32,13 +31,16 @@ use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\mcpe\NetworkBinaryStream;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\protocol\StartGamePacket;
 use function file_get_contents;
 use function getmypid;
 use function json_decode;
 use function mt_rand;
 use function mt_srand;
 use function shuffle;
+use const pocketmine\RESOURCE_PATH;
 
 /**
  * @internal
@@ -57,8 +59,8 @@ final class RuntimeBlockMapping {
 	/** @var mixed[] */
 	private $bedrockKnownStates;
 
-	/** @var string $data */
-	private $data = "";
+	/** @var string $serializedTable */
+	private $serializedTable;
 
     /**
      * RuntimeBlockMapping constructor.
@@ -72,57 +74,7 @@ final class RuntimeBlockMapping {
         $decompressed = [];
 
         if($buildNBT) {
-            $list = new ListTag();
-            $statesTable = json_decode(file_get_contents(array_shift($files)), true);
-            $i = 0;
-
-            foreach($compressedTable as $prefix => $entries){
-                foreach($entries as $shortStringId => $stateEntries){
-                    $name = "$prefix:$shortStringId";
-                    $states = new CompoundTag("states", []);
-                    foreach($stateEntries as $entry){
-
-                        if(isset($statesTable[$name])) {
-                            foreach ($statesTable[$name] as $index => ["type" => $type, "value" => $value]) {
-                                switch ($type) {
-                                    case NBT::TAG_Byte:
-                                        $states->setByte($index, $value);
-                                        break;
-                                    case NBT::TAG_Int:
-                                        $states->setInt($index, $value);
-                                        break;
-                                    case NBT::TAG_String:
-                                        $states->setString($index, $value);
-                                        break;
-                                }
-                            }
-                        }
-                        $decompressed[] = [
-                            "name" => $name,
-                            "data" => $entry,
-                            "legacy_id" => $legacyIdMap[$name]
-                        ];
-                    }
-
-                    $nbt = new CompoundTag("", [
-                        "block" => new CompoundTag("block", [
-                            "name" => new StringTag("name", $name),
-                            "states" => $states,
-                            "version" => new IntTag("version", 17629199)
-                        ]),
-                        "id" => new ShortTag("id", $legacyIdMap[$name])
-                    ]);
-
-                    $list->offsetSet($i++, $nbt);
-                    $nbt = new LittleEndianNBTStream();
-                    $nbt->write($list);
-                    $this->data = $nbt->buffer;
-                }
-            }
-
-
-
-            goto finish;
+            $this->serializedTable = file_get_contents(RESOURCE_PATH . "vanilla/full_data_370.txt");
         }
 
         foreach($compressedTable as $prefix => $entries){
@@ -137,8 +89,6 @@ final class RuntimeBlockMapping {
                 }
             }
         }
-
-        finish:
 
         $this->bedrockKnownStates = self::randomizeTable($decompressed);
 
@@ -181,8 +131,8 @@ final class RuntimeBlockMapping {
      *
      * @return int
      */
-	public function toStaticRuntimeId(int $id, int $meta = 0, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : int{
-        $class = self::$mappings[$protocol];
+	public static function toStaticRuntimeId(int $id, int $meta = 0, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : int{
+        $class = self::$mappings[self::getProtocol($protocol)];
 		/*
 		 * try id+meta first
 		 * if not found, try id+0 (strip meta)
@@ -197,7 +147,7 @@ final class RuntimeBlockMapping {
      * @return array
      */
 	public static function fromStaticRuntimeId(int $runtimeId, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array{
-	    $class = self::$mappings[$protocol];
+	    $class = self::$mappings[self::getProtocol($protocol)];
 		$v = $class->runtimeToLegacyMap[$runtimeId];
 		return [$v >> 4, $v & 0xf];
 	}
@@ -211,10 +161,35 @@ final class RuntimeBlockMapping {
      * @param int $protocol
      * @return array
      */
-	public static function getBedrockKnownStates(int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array{
-        $class = self::$mappings[$protocol];
+	public static function getBedrockKnownStates(int $protocol = ProtocolInfo::CURRENT_PROTOCOL): array {
+        $class = self::$mappings[self::getProtocol($protocol)];
 		return $class->bedrockKnownStates;
 	}
+
+    /**
+     * @param int $protocol
+     * @return string
+     */
+	public static function getSerializeBlockTable(int $protocol = ProtocolInfo::CURRENT_PROTOCOL) {
+	    $class = self::$mappings[self::getProtocol($protocol)];
+
+	    if($class->serializedTable === "") {
+	        $class->serializedTable = StartGamePacket::serializeBlockTable(self::getBedrockKnownStates($protocol));
+        }
+
+	    return $class->serializedTable;
+    }
+
+    /**
+     * @param int $protocol
+     * @return int
+     */
+    private static function getProtocol(int $protocol) {
+	    if($protocol >= ProtocolInfo::PROTOCOL_1_13) {
+	        return ProtocolInfo::PROTOCOL_1_13;
+        }
+	    return ProtocolInfo::PROTOCOL_1_12;
+    }
 
     /**
      * @param int $protocol

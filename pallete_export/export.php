@@ -18,8 +18,11 @@ switch (option) {
         file_put_contents(export_file, convertToBlockIds(file));
         break;
     case 2:
-        file_put_contents(export_file, convertToStatesData(file));
+        file_put_contents(export_file, $a = convertToStatesData(file));
+        var_dump(json_decode($a, true));
+        break;
 }
+
 
 /**
  * @param string $file

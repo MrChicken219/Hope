@@ -77,6 +77,7 @@ use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\SetDifficultyPacket;
 use pocketmine\network\mcpe\protocol\SetTimePacket;
 use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
@@ -964,61 +965,71 @@ class Level implements ChunkManager, Metadatable{
 	 * @param bool      $optimizeRebuilds
 	 */
 	public function sendBlocks(array $target, array $blocks, int $flags = UpdateBlockPacket::FLAG_NONE, bool $optimizeRebuilds = false){
-		$packets = [];
-		if($optimizeRebuilds){
-			$chunks = [];
-			foreach($blocks as $b){
-				if(!($b instanceof Vector3)){
-					throw new \TypeError("Expected Vector3 in blocks array, got " . (is_object($b) ? get_class($b) : gettype($b)));
-				}
-				$pk = new UpdateBlockPacket();
+	    foreach (ProtocolInfo::PROTOCOL_NAMES as $protocol) {
+            $packets = [];
+            if($optimizeRebuilds){
+                $chunks = [];
+                foreach($blocks as $b){
+                    if(!($b instanceof Vector3)){
+                        throw new \TypeError("Expected Vector3 in blocks array, got " . (is_object($b) ? get_class($b) : gettype($b)));
+                    }
+                    $pk = new UpdateBlockPacket();
 
-				$first = false;
-				if(!isset($chunks[$index = Level::chunkHash($b->x >> 4, $b->z >> 4)])){
-					$chunks[$index] = true;
-					$first = true;
-				}
+                    $first = false;
+                    if(!isset($chunks[$index = Level::chunkHash($b->x >> 4, $b->z >> 4)])){
+                        $chunks[$index] = true;
+                        $first = true;
+                    }
 
-				$pk->x = $b->x;
-				$pk->y = $b->y;
-				$pk->z = $b->z;
+                    $pk->x = $b->x;
+                    $pk->y = $b->y;
+                    $pk->z = $b->z;
 
-				if($b instanceof Block){
-					$pk->blockRuntimeId = $b->getRuntimeId();
-				}else{
-					$fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
-					$pk->blockRuntimeId = RuntimeBlockMapping::toStaticRuntimeId($fullBlock >> 4, $fullBlock & 0xf);
-				}
+                    if($b instanceof Block){
+                        $pk->blockRuntimeId = $b->getRuntimeId();
+                    }else{
+                        $fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
+                        $pk->blockRuntimeId = RuntimeBlockMapping::toStaticRuntimeId($fullBlock >> 4, $fullBlock & 0xf, $protocol);
+                    }
 
-				$pk->flags = $first ? $flags : UpdateBlockPacket::FLAG_NONE;
+                    $pk->flags = $first ? $flags : UpdateBlockPacket::FLAG_NONE;
 
-				$packets[] = $pk;
-			}
-		}else{
-			foreach($blocks as $b){
-				if(!($b instanceof Vector3)){
-					throw new \TypeError("Expected Vector3 in blocks array, got " . (is_object($b) ? get_class($b) : gettype($b)));
-				}
-				$pk = new UpdateBlockPacket();
+                    $packets[] = $pk;
+                }
+            }else{
+                foreach($blocks as $b){
+                    if(!($b instanceof Vector3)){
+                        throw new \TypeError("Expected Vector3 in blocks array, got " . (is_object($b) ? get_class($b) : gettype($b)));
+                    }
+                    $pk = new UpdateBlockPacket();
 
-				$pk->x = $b->x;
-				$pk->y = $b->y;
-				$pk->z = $b->z;
+                    $pk->x = $b->x;
+                    $pk->y = $b->y;
+                    $pk->z = $b->z;
 
-				if($b instanceof Block){
-					$pk->blockRuntimeId = $b->getRuntimeId();
-				}else{
-					$fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
-					$pk->blockRuntimeId = RuntimeBlockMapping::toStaticRuntimeId($fullBlock >> 4, $fullBlock & 0xf);
-				}
+                    if($b instanceof Block){
+                        $pk->blockRuntimeId = $b->getRuntimeId($protocol);
+                    }else{
+                        $fullBlock = $this->getFullBlock($b->x, $b->y, $b->z);
+                        $pk->blockRuntimeId = RuntimeBlockMapping::toStaticRuntimeId($fullBlock >> 4, $fullBlock & 0xf, $protocol);
+                    }
 
-				$pk->flags = $flags;
+                    $pk->flags = $flags;
 
-				$packets[] = $pk;
-			}
-		}
+                    $packets[] = $pk;
+                }
+            }
 
-		$this->server->batchPackets($target, $packets, false, false);
+            $finalTarget = [];
+
+            /** @var Player $player */
+            foreach ($target as $player) {
+                if($player->getProtocol() == $protocol) {
+                    $finalTarget[] = $player;
+                }
+            }
+            $this->server->batchPackets($finalTarget, $packets, false, false);
+        }
 	}
 
 	public function clearCache(bool $force = false){

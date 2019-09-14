@@ -30,6 +30,7 @@ interface ProtocolInfo {
 
     public const PROTOCOL_1_12 = 361;
     public const PROTOCOL_1_13 = 371;
+    public const PROTOCOL_1_13_0_8 = 386;
 
 	/**
 	 * NOTE TO DEVELOPERS
@@ -44,7 +45,22 @@ interface ProtocolInfo {
 	 */
 	public const CURRENT_PROTOCOL = 361;
 
-	public const ACCEPTED_PROTOCOLS = [self::PROTOCOL_1_12, self::PROTOCOL_1_13];
+    /**
+     * Supported protocols
+     */
+	public const ACCEPTED_PROTOCOLS = [
+	    self::PROTOCOL_1_12,
+        self::PROTOCOL_1_13, 385,
+        self::PROTOCOL_1_13_0_8
+    ];
+
+    /**
+     * Protocols
+     */
+	public const PROTOCOL_NAMES = [
+	    self::PROTOCOL_1_12,
+        self::PROTOCOL_1_13 // 1.13.0.8 hasn't too much changes
+    ];
 
 
 	/**

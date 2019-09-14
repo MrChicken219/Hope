@@ -33,6 +33,9 @@ use function count;
 class ResourcePacksInfoPacket extends DataPacket{
 	public const NETWORK_ID = ProtocolInfo::RESOURCE_PACKS_INFO_PACKET;
 
+	/** @var int $protocol */
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	/** @var bool */
 	public $mustAccept = false; //if true, forces client to use selected resource packs
 	/** @var bool */
@@ -69,6 +72,17 @@ class ResourcePacksInfoPacket extends DataPacket{
 	}
 
 	protected function encodePayload(){
+        $this->putString("");
+        $this->putLInt(0);
+        $this->putLLong(0);
+        if ($this->protocol >= ProtocolInfo::PROTOCOL_1_13) {
+            $this->putString("");
+        } else {
+            $this->putLInt(0);
+            $this->put("");
+        }
+
+	    /* TODO: Fix resource packs
 		$this->putBool($this->mustAccept);
 		$this->putBool($this->hasScripts);
 		$this->putLShort(count($this->behaviorPackEntries));
@@ -90,7 +104,7 @@ class ResourcePacksInfoPacket extends DataPacket{
 			$this->putString(""); //TODO: subpack name
 			$this->putString(""); //TODO: content identity
 			$this->putBool(false); //TODO: seems useless for resource packs
-		}
+		}*/
 	}
 
 	public function handle(NetworkSession $session) : bool{

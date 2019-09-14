@@ -97,7 +97,6 @@ use pocketmine\snooze\SleeperNotifier;
 use pocketmine\tile\Tile;
 use pocketmine\timings\Timings;
 use pocketmine\timings\TimingsHandler;
-use pocketmine\updater\AutoUpdater;
 use pocketmine\utils\Config;
 use pocketmine\utils\Internet;
 use pocketmine\utils\MainLogger;
@@ -214,9 +213,6 @@ class Server{
 
 	/** @var float */
 	private $profilingTickRate = 20;
-
-	/** @var AutoUpdater */
-	private $updater = null;
 
 	/** @var AsyncPool */
 	private $asyncPool;
@@ -518,6 +514,17 @@ class Server{
 		return $this->getConfigBool("force-gamemode", false);
 	}
 
+    /**
+     * @param int $protocol
+     * @return int
+     */
+	public static function getProtocolIdentifier(int $protocol): int {
+	    if($protocol >= ProtocolInfo::PROTOCOL_1_13) {
+	        return ProtocolInfo::PROTOCOL_1_13;
+        }
+	    return ProtocolInfo::PROTOCOL_1_12;
+    }
+
 	/**
 	 * Returns the gamemode text name
 	 *
@@ -672,13 +679,6 @@ class Server{
 	 */
 	public function getLevelMetadata(){
 		return $this->levelMetadata;
-	}
-
-	/**
-	 * @return AutoUpdater
-	 */
-	public function getUpdater(){
-		return $this->updater;
 	}
 
 	/**
@@ -1713,8 +1713,6 @@ class Server{
 
 			$this->pluginManager->loadPlugins($this->pluginPath);
 
-			$this->updater = new AutoUpdater($this, $this->getProperty("auto-updater.host", "update.pmmp.io"));
-
 			$this->enablePlugins(PluginLoadOrder::STARTUP);
 
 			$this->network->registerInterface(new RakLibInterface($this));
@@ -1901,15 +1899,16 @@ class Server{
 		return count($recipients);
 	}
 
-	/**
-	 * Broadcasts a Minecraft packet to a list of players
-	 *
-	 * @param Player[]   $players
-	 * @param DataPacket $packet
-	 */
-	public function broadcastPacket(array $players, DataPacket $packet){
+    /**
+     * Broadcast MCPE packet to list of players
+     *
+     * @param array $players
+     * @param DataPacket $packet
+     * @param bool $addProtocol
+     */
+	public function broadcastPacket(array $players, DataPacket $packet, bool $addProtocol = false){
 		$packet->encode();
-		$this->batchPackets($players, [$packet], false);
+		$this->batchPackets($players, [$packet], false, false, $addProtocol);
 	}
 
 	/**
@@ -1919,11 +1918,33 @@ class Server{
 	 * @param DataPacket[] $packets
 	 * @param bool         $forceSync
 	 * @param bool         $immediate
+     * @param bool         $addProtocol
 	 */
-	public function batchPackets(array $players, array $packets, bool $forceSync = false, bool $immediate = false){
+	public function batchPackets(array $players, array $packets, bool $forceSync = false, bool $immediate = false, bool $addProtocol = false){
 		if(empty($packets)){
 			throw new \InvalidArgumentException("Cannot send empty batch");
 		}
+
+        if($addProtocol) {
+            $packetList = [];
+            $playerList = [];
+            foreach ($players as $player) {
+                if(!isset($packetList[$id = self::getProtocolIdentifier($player->getProtocol())])) {
+                    foreach ($packets as $packet) {
+                        $pk = clone $packet;
+                        $pk->protocol = $player->getProtocol();
+                        $packetList[$id][] = $pk;
+                        $playerList[$id][] = $player;
+                    }
+                }
+            }
+
+            foreach ($packetList as $protocol => $packetToSend) {
+                $this->batchPackets($playerList[$protocol], $packetList, $forceSync, $immediate, false);
+            }
+            return;
+        }
+
 		Timings::$playerNetworkTimer->startTiming();
 
 		$targets = array_filter($players, function(Player $player) : bool{ return $player->isConnected(); });
