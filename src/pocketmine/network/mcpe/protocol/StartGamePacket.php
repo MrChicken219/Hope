@@ -270,7 +270,7 @@ class StartGamePacket extends DataPacket{
 		    $this->putString(""); // Vanilla version
         }
 
-		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_13) {
+		if($this->protocol == ProtocolInfo::PROTOCOL_1_13_0_13) {
             $this->putByte(0); // unknown
             $this->putByte(1); // unknown
             $this->putLFloat(0); // unknown
@@ -280,6 +280,10 @@ class StartGamePacket extends DataPacket{
 		$this->putString($this->worldName);
 		$this->putString($this->premiumWorldTemplateId);
 		$this->putBool($this->isTrial);
+
+		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_17)
+		    $this->putByte(0);
+
 		$this->putLLong($this->currentTick);
 
 		$this->putVarInt($this->enchantmentSeed);

@@ -1925,6 +1925,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			base64_decode($packet->clientData["SkinGeometry"] ?? "")
 		);
 
+
 		if(!$skin->isValid()){
 			$this->close("", "disconnectionScreen.invalidSkin");
 
@@ -2200,7 +2201,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->sendAllInventories();
 		$this->inventory->sendCreativeContents();
 		$this->inventory->sendHeldItem($this);
-		$this->dataPacket($this->server->getCraftingManager()->getCraftingDataPacket());
+		$this->dataPacket($this->server->getCraftingManager()->getCraftingDataPacket($this->getProtocol()));
 
 		$this->server->addOnlinePlayer($this);
 		$this->server->sendFullPlayerListData($this);

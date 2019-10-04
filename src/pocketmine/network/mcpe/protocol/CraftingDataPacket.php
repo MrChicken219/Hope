@@ -51,6 +51,9 @@ class CraftingDataPacket extends DataPacket{
 	public const ENTRY_SHAPELESS_CHEMISTRY = 6; //TODO
 	public const ENTRY_SHAPED_CHEMISTRY = 7; //TODO
 
+    /** @var int $protocol */
+    public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	/** @var object[] */
 	public $entries = [];
 	/** @var bool */
@@ -240,6 +243,11 @@ class CraftingDataPacket extends DataPacket{
 
 			$writer->reset();
 		}
+
+		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_9) {
+		    $this->putVarInt(0);
+		    $this->putVarInt(0);
+        }
 
 		$this->putBool($this->cleanRecipes);
 	}

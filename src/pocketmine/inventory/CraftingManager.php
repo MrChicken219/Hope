@@ -26,6 +26,7 @@ namespace pocketmine\inventory;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\CraftingDataPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\Server;
 use pocketmine\timings\Timings;
 use function array_map;
@@ -43,8 +44,8 @@ class CraftingManager{
 	/** @var FurnaceRecipe[] */
 	protected $furnaceRecipes = [];
 
-	/** @var BatchPacket */
-	private $craftingDataCache;
+	/** @var BatchPacket[] $craftingDataCache */
+	private $craftingDataCache = [];
 
 	public function __construct(){
 		$this->init();
@@ -95,48 +96,52 @@ class CraftingManager{
 	/**
 	 * Rebuilds the cached CraftingDataPacket.
 	 */
-	public function buildCraftingDataCache() : void{
+	public function buildCraftingDataCache() : void {
 		Timings::$craftingDataCacheRebuildTimer->startTiming();
-		$pk = new CraftingDataPacket();
-		$pk->cleanRecipes = true;
+		foreach (ProtocolInfo::PROTOCOL_NAMES as $protocol) {
+            $pk = new CraftingDataPacket();
+            $pk->cleanRecipes = true;
+            $pk->protocol = $protocol;
 
-		foreach($this->shapelessRecipes as $list){
-			foreach($list as $recipe){
-				$pk->addShapelessRecipe($recipe);
-			}
-		}
-		foreach($this->shapedRecipes as $list){
-			foreach($list as $recipe){
-				$pk->addShapedRecipe($recipe);
-			}
-		}
+            foreach($this->shapelessRecipes as $list){
+                foreach($list as $recipe){
+                    $pk->addShapelessRecipe($recipe);
+                }
+            }
+            foreach($this->shapedRecipes as $list){
+                foreach($list as $recipe){
+                    $pk->addShapedRecipe($recipe);
+                }
+            }
 
-		foreach($this->furnaceRecipes as $recipe){
-			$pk->addFurnaceRecipe($recipe);
-		}
+            foreach($this->furnaceRecipes as $recipe){
+                $pk->addFurnaceRecipe($recipe);
+            }
 
-		$pk->encode();
+            $pk->encode();
 
-		$batch = new BatchPacket();
-		$batch->addPacket($pk);
-		$batch->setCompressionLevel(Server::getInstance()->networkCompressionLevel);
-		$batch->encode();
+            $batch = new BatchPacket();
+            $batch->addPacket($pk);
+            $batch->setCompressionLevel(Server::getInstance()->networkCompressionLevel);
+            $batch->encode();
 
-		$this->craftingDataCache = $batch;
+            $this->craftingDataCache[$protocol] = $batch;
+        }
 		Timings::$craftingDataCacheRebuildTimer->stopTiming();
 	}
 
 	/**
 	 * Returns a pre-compressed CraftingDataPacket for sending to players. Rebuilds the cache if it is not found.
 	 *
+     * @param int $protocol
 	 * @return BatchPacket
 	 */
-	public function getCraftingDataPacket() : BatchPacket{
+	public function getCraftingDataPacket(int $protocol) : BatchPacket{
 		if($this->craftingDataCache === null){
 			$this->buildCraftingDataCache();
 		}
 
-		return $this->craftingDataCache;
+		return $this->craftingDataCache[Server::getProtocolIdentifier($protocol)];
 	}
 
 	/**

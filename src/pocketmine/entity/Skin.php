@@ -33,7 +33,8 @@ class Skin{
 	public const ACCEPTED_SKIN_SIZES = [
 		64 * 32 * 4,
 		64 * 64 * 4,
-		128 * 128 * 4
+		128 * 128 * 4,
+        256 * 128 * 4
 	];
 
 	/** @var string */
@@ -64,6 +65,7 @@ class Skin{
 			$this->validate();
 			return true;
 		}catch(\InvalidArgumentException $e){
+		    var_dump($e->getMessage());
 			return false;
 		}
 	}
@@ -73,7 +75,7 @@ class Skin{
 	 */
 	public function validate() : void{
 		if($this->skinId === ""){
-			throw new \InvalidArgumentException("Skin ID must not be empty");
+			throw new \InvalidArgumentException("Skin ID must not be empty"); // TODO: Fix skins in 1.13
 		}
 		$len = strlen($this->skinData);
 		if(!in_array($len, self::ACCEPTED_SKIN_SIZES, true)){

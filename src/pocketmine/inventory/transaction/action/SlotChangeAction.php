@@ -73,6 +73,8 @@ class SlotChangeAction extends InventoryAction{
 	 *
 	 * @param Player $source
 	 *
+     * TODO: Fix craftings (returns false, should true)
+     *
 	 * @return bool
 	 */
 	public function isValid(Player $source) : bool{

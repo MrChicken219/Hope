@@ -34,6 +34,9 @@ interface ProtocolInfo {
     // beta protocols
     public const PROTOCOL_1_13_0_9 = 385;
     public const PROTOCOL_1_13_0_13 = 386;
+    public const PROTOCOL_1_13_0_15 = 387;
+    public const PROTOCOL_1_13_0_17 = 388;
+    public const PROTOCOL_1_13_0_18 = 389;
 
 	/**
 	 * NOTE TO DEVELOPERS
@@ -55,7 +58,10 @@ interface ProtocolInfo {
 	    self::PROTOCOL_1_12,
         self::PROTOCOL_1_13,
         self::PROTOCOL_1_13_0_9,
-        self::PROTOCOL_1_13_0_13
+        self::PROTOCOL_1_13_0_13,
+        self::PROTOCOL_1_13_0_15,
+        self::PROTOCOL_1_13_0_17,
+        self::PROTOCOL_1_13_0_18
     ];
 
     /**

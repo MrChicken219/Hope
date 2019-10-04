@@ -83,6 +83,9 @@ class AvailableCommandsPacket extends DataPacket{
 	 */
 	public const ARG_FLAG_POSTFIX = 0x1000000;
 
+	/** @var int $protocol */
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	/**
 	 * @var string[]
 	 * A list of every single enum value for every single command in the packet, including alias names.

@@ -100,6 +100,10 @@ final class RuntimeBlockMapping {
             //this has to use the json offset to make sure the mapping is consistent with what we send over network, even though we aren't using all the entries
             self::registerMapping($k, $obj["legacy_id"], $obj["data"]);
         }
+
+        if(!$buildNBT) {
+            $this->serializedTable = StartGamePacket::serializeBlockTable($this->bedrockKnownStates);
+        }
 	}
 
 	public static function init() : void{

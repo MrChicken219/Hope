@@ -41,6 +41,7 @@ class RespawnPacket extends DataPacket{
 
 	protected function encodePayload(){
 		$this->putVector3($this->position);
+		$this->putLInt(7);
 	}
 
 	public function handle(NetworkSession $session) : bool{
