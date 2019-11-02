@@ -44,9 +44,6 @@ class StartGamePacket extends DataPacket{
 	/** @var string|null */
 	private static $itemTableCache = null;
 
-	/** @var int $protocol */
-	public $protocol;
-
 	/** @var int */
 	public $entityUniqueId;
 	/** @var int */
@@ -265,49 +262,42 @@ class StartGamePacket extends DataPacket{
 		$this->putBool($this->isFromWorldTemplate);
 		$this->putBool($this->isWorldTemplateOptionLocked);
 		$this->putBool($this->onlySpawnV1Villagers);
+		$this->putString(ProtocolInfo::MINECRAFT_VERSION); // 1.13
 
-		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13) {
-		    $this->putString(""); // Vanilla version
-        }
-
-		if($this->protocol == ProtocolInfo::PROTOCOL_1_13_0_13) {
-            $this->putByte(0); // unknown
-            $this->putByte(1); // unknown
-            $this->putLFloat(0); // unknown
-        }
-
-        $this->putString($this->levelId);
+		$this->putString($this->levelId);
 		$this->putString($this->worldName);
 		$this->putString($this->premiumWorldTemplateId);
 		$this->putBool($this->isTrial);
-
-		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_17)
-		    $this->putByte(0);
-
+		$this->putBool(false); // 1.13
 		$this->putLLong($this->currentTick);
 
 		$this->putVarInt($this->enchantmentSeed);
 
-		$this->put(RuntimeBlockMapping::getSerializeBlockTable($this->protocol));
-
-		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13) {
-            $this->putVarInt(0);
-        }
-		else {
-            if($this->itemTable === null){
-                if(self::$itemTableCache === null){
-                    self::$itemTableCache = self::serializeItemTable(json_decode(file_get_contents(RESOURCE_PATH . '/vanilla/item_id_map.json'), true));
-                }
-                $this->put(self::$itemTableCache);
-            }else{
-                $this->put(self::serializeItemTable($this->itemTable));
-            }
-        }
+		if($this->blockTable === null){
+			if(self::$blockTableCache === null){
+				//this is a really nasty hack, but it'll do for now
+				self::$blockTableCache = self::serializeBlockTable(RuntimeBlockMapping::getBedrockKnownStates());
+			}
+			$this->put(self::$blockTableCache);
+		}else{
+			$this->put(self::serializeBlockTable($this->blockTable));
+		}
+		if($this->itemTable === null){
+			if(self::$itemTableCache === null){
+				self::$itemTableCache = self::serializeItemTable(json_decode(file_get_contents(RESOURCE_PATH . '/vanilla/item_id_map.json'), true));
+			}
+			$this->put(self::$itemTableCache);
+		}else{
+			$this->put(self::serializeItemTable($this->itemTable));
+		}
 
 		$this->putString($this->multiplayerCorrelationId);
 	}
 
-	public static function serializeBlockTable(array $table) : string{
+	private static function serializeBlockTable($table) : string{
+	    if(is_string($table)) {
+	        return $table;
+        }
 		$stream = new NetworkBinaryStream();
 		$stream->putUnsignedVarInt(count($table));
 		foreach($table as $v){

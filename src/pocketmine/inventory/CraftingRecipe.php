@@ -36,18 +36,18 @@ interface CraftingRecipe extends Recipe{
 	/**
 	 * Returns a list of results this recipe will produce when the inputs in the given crafting grid are consumed.
 	 *
-	 * @param CraftingGrid $grid
+	 * @param CraftingGridInterface $grid
 	 *
 	 * @return Item[]
 	 */
-	public function getResultsFor(CraftingGrid $grid) : array;
+	public function getResultsFor(CraftingGridInterface $grid) : array;
 
 	/**
 	 * Returns whether the given crafting grid meets the requirements to craft this recipe.
 	 *
-	 * @param CraftingGrid $grid
+	 * @param CraftingGridInterface $grid
 	 *
 	 * @return bool
 	 */
-	public function matchesCraftingGrid(CraftingGrid $grid) : bool;
+	public function matchesCraftingGrid(CraftingGridInterface $grid) : bool;
 }

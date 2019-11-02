@@ -19,9 +19,38 @@
  *
 */
 
-namespace pocketmine;
+declare(strict_types=1);
 
-const NAME = "Foxel";
-const BASE_VERSION = "1.0.0";
-const IS_DEVELOPMENT_BUILD = false;
-const BUILD_NUMBER = 0;
+namespace pocketmine\inventory;
+
+use pocketmine\Player;
+
+class OldPlayerCursorInventory extends BaseInventory{
+	/** @var Player */
+	protected $holder;
+
+	public function __construct(Player $holder){
+		$this->holder = $holder;
+		parent::__construct();
+	}
+
+	public function getName() : string{
+		return "Cursor";
+	}
+
+	public function getDefaultSize() : int{
+		return 1;
+	}
+
+	public function setSize(int $size){
+		throw new \BadMethodCallException("Cursor can only carry one item at a time");
+	}
+
+	/**
+	 * This override is here for documentation and code completion purposes only.
+	 * @return Player
+	 */
+	public function getHolder(){
+		return $this->holder;
+	}
+}

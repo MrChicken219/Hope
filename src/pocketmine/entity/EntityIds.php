@@ -22,7 +22,9 @@
 declare(strict_types=1);
 
 namespace pocketmine\entity;
+
 interface EntityIds{
+
 	public const CHICKEN = 10;
 	public const COW = 11;
 	public const PIG = 12;
@@ -110,6 +112,7 @@ interface EntityIds{
 	public const HOPPER_MINECART = 96;
 	public const TNT_MINECART = 97;
 	public const CHEST_MINECART = 98;
+
 	public const COMMAND_BLOCK_MINECART = 100;
 	public const LINGERING_POTION = 101;
 	public const LLAMA_SPIT = 102;

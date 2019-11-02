@@ -114,7 +114,7 @@ class ShapedRecipe implements CraftingRecipe{
 	 *
 	 * @return Item[]
 	 */
-	public function getResultsFor(CraftingGrid $grid) : array{
+	public function getResultsFor(CraftingGridInterface $grid) : array{
 		return $this->getResults();
 	}
 
@@ -192,12 +192,12 @@ class ShapedRecipe implements CraftingRecipe{
 	}
 
 	/**
-	 * @param CraftingGrid $grid
+	 * @param CraftingGridInterface $grid
 	 * @param bool         $reverse
 	 *
 	 * @return bool
 	 */
-	private function matchInputMap(CraftingGrid $grid, bool $reverse) : bool{
+	private function matchInputMap(CraftingGridInterface $grid, bool $reverse) : bool{
 		for($y = 0; $y < $this->height; ++$y){
 			for($x = 0; $x < $this->width; ++$x){
 
@@ -217,7 +217,7 @@ class ShapedRecipe implements CraftingRecipe{
 	 *
 	 * @return bool
 	 */
-	public function matchesCraftingGrid(CraftingGrid $grid) : bool{
+	public function matchesCraftingGrid(CraftingGridInterface $grid) : bool{
 		if($this->width !== $grid->getRecipeWidth() or $this->height !== $grid->getRecipeHeight()){
 			return false;
 		}

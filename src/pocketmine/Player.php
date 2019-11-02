@@ -70,8 +70,10 @@ use pocketmine\event\server\DataPacketSendEvent;
 use pocketmine\form\Form;
 use pocketmine\form\FormValidationException;
 use pocketmine\inventory\CraftingGrid;
+use pocketmine\inventory\CraftingGridInterface;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\PlayerCursorInventory;
+use pocketmine\inventory\PlayerUIInventory;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\CraftingTransaction;
 use pocketmine\inventory\transaction\InventoryTransaction;
@@ -254,15 +256,15 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	protected $lastPingMeasure = 1;
 
-	/** @var int $protocol */
-	protected $protocol;
-
 
 	/** @var float */
 	public $creationTime = 0;
 
 	/** @var bool */
 	public $loggedIn = false;
+
+	/** @var bool */
+	private $resourcePacksDone = false;
 
 	/** @var bool */
 	public $spawned = false;
@@ -277,6 +279,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $randomClientId;
 	/** @var string */
 	protected $xuid = "";
+	/** @var int $protocol */
+	protected $protocol = ProtocolInfo::CURRENT_PROTOCOL;
 
 	protected $windowCnt = 2;
 	/** @var int[] */
@@ -285,9 +289,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $windowIndex = [];
 	/** @var bool[] */
 	protected $permanentWindows = [];
-	/** @var PlayerCursorInventory */
-	protected $cursorInventory;
-	/** @var CraftingGrid */
+	/** @var PlayerUIInventory $playerUIInventory */
+	protected $playerUIInventory;
+	/** @var CraftingGridInterface */
 	protected $craftingGrid = null;
 	/** @var CraftingTransaction|null */
 	protected $craftingTransaction = null;
@@ -434,6 +438,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		return $this->xuid;
 	}
 
+    /**
+     * @return int
+     */
+	public function getProtocol(): int {
+	    return $this->protocol;
+    }
+
 	/**
 	 * Returns the player's UUID. This should be preferred over their Xbox user ID (XUID) because UUID is a standard
 	 * format which will never change, and all players will have one regardless of whether they are logged into Xbox
@@ -454,13 +465,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public function getUniqueId() : ?UUID{
 		return parent::getUniqueId();
 	}
-
-    /**
-     * @return int $protocol
-     */
-	public function getProtocol(): int {
-	    return $this->protocol;
-    }
 
 	public function getPlayer(){
 		return $this;
@@ -1109,6 +1113,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}
 
 		$this->spawnToAll();
+
+		if($this->server->getUpdater()->hasUpdate() and $this->hasPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE) and $this->server->getProperty("auto-updater.on-update.warn-ops", true)){
+			$this->server->getUpdater()->showPlayerUpdate($this);
+		}
 
 		if($this->getHealth() <= 0){
 			$this->respawn();
@@ -1880,7 +1888,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return false;
 		}
 
-		if(!in_array($packet->protocol, ProtocolInfo::ACCEPTED_PROTOCOLS)){
+		if(!in_array($packet->protocol, ProtocolInfo::SUPPORTED_PROTOCOLS)){
 			if($packet->protocol < ProtocolInfo::CURRENT_PROTOCOL){
 				$this->sendPlayStatus(PlayStatusPacket::LOGIN_FAILED_CLIENT, true);
 			}else{
@@ -1902,7 +1910,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->username = TextFormat::clean($packet->username);
 		$this->displayName = $this->username;
 		$this->iusername = strtolower($this->username);
-		$this->protocol = $packet->protocol;
 
 		if($packet->locale !== null){
 			$this->locale = $packet->locale;
@@ -1917,12 +1924,22 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->uuid = UUID::fromString($packet->clientUUID);
 		$this->rawUUID = $this->uuid->toBinary();
 
+		$this->protocol = $packet->protocol;
+
+        $additionalSkinData = [];
+		foreach ($packet->clientData as $i => $v) {
+		    if(in_array($i, ["SkinAnimationData", "PremiumSkin", "PersonaSkin", "CapeOnClassicSkin", "CapeId", "SkinImageWidth", "SkinImageHeight", "SkinResourcePatch", "AnimatedImageDataAnimatedImageData", "AnimatedImageData"])) {
+		        $additionalSkinData[$i] = $v;
+            }
+        }
+
 		$skin = new Skin(
 			$packet->clientData["SkinId"],
 			base64_decode($packet->clientData["SkinData"] ?? ""),
 			base64_decode($packet->clientData["CapeData"] ?? ""),
 			$packet->clientData["SkinGeometryName"] ?? "",
-			base64_decode($packet->clientData["SkinGeometry"] ?? "")
+			base64_decode($packet->clientData["SkinGeometry"] ?? ""),
+            $additionalSkinData
 		);
 
 
@@ -2057,7 +2074,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->server->onPlayerLogin($this);
 
 		$pk = new ResourcePacksInfoPacket();
-		$pk->protocol = $this->getProtocol();
 		$manager = $this->server->getResourcePackManager();
 		$pk->resourcePackEntries = $manager->getResourceStack();
 		$pk->mustAccept = $manager->resourcePacksRequired();
@@ -2065,6 +2081,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function handleResourcePackClientResponse(ResourcePackClientResponsePacket $packet) : bool{
+		if($this->resourcePacksDone){
+			return false;
+		}
 		switch($packet->status){
 			case ResourcePackClientResponsePacket::STATUS_REFUSED:
 				//TODO: add lang strings for this
@@ -2106,6 +2125,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 				$this->dataPacket($pk);
 				break;
 			case ResourcePackClientResponsePacket::STATUS_COMPLETED:
+				$this->resourcePacksDone = true;
 				$this->completeLoginSequence();
 				break;
 			default:
@@ -2141,7 +2161,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$spawnPosition = $this->getSpawn();
 
 		$pk = new StartGamePacket();
-		$pk->protocol = $this->getProtocol();
 		$pk->entityUniqueId = $this->id;
 		$pk->entityRuntimeId = $this->id;
 		$pk->playerGamemode = Player::getClientFriendlyGamemode($this->gamemode);
@@ -2201,7 +2220,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->sendAllInventories();
 		$this->inventory->sendCreativeContents();
 		$this->inventory->sendHeldItem($this);
-		$this->dataPacket($this->server->getCraftingManager()->getCraftingDataPacket($this->getProtocol()));
+		$this->dataPacket($this->server->getCraftingManager()->getCraftingDataPacket());
 
 		$this->server->addOnlinePlayer($this);
 		$this->server->sendFullPlayerListData($this);
@@ -3059,6 +3078,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function handleResourcePackChunkRequest(ResourcePackChunkRequestPacket $packet) : bool{
+		if($this->resourcePacksDone){
+			return false;
+		}
 		$manager = $this->server->getResourcePackManager();
 		$pack = $manager->getPackById($packet->packId);
 		if(!($pack instanceof ResourcePack)){
@@ -3076,6 +3098,26 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->dataPacket($pk);
 		return true;
 	}
+
+    /**
+     * 1.13
+     *
+     * @param RespawnPacket $packet
+     * @return bool
+     */
+	public function handleRespawn(RespawnPacket $packet): bool {
+	    if($this->isAlive()) {
+	        return false;
+        }
+	    if($packet->respawnState === RespawnPacket::STATE_CLIENT_READY_TO_SPAWN) {
+            $respawn = new RespawnPacket();
+            $respawn->position = $this->asVector3();
+            $respawn->respawnState = RespawnPacket::STATE_READY_TO_SPAWN;
+            $this->dataPacket($respawn);
+            return true;
+        }
+	    return false;
+    }
 
 	public function handleBookEdit(BookEditPacket $packet) : bool{
 		/** @var WritableBook $oldBook */
@@ -3539,7 +3581,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->removeAllWindows(true);
 			$this->windows = [];
 			$this->windowIndex = [];
-			$this->cursorInventory = null;
+			$this->playerUIInventory = null;
 			$this->craftingGrid = null;
 
 			if($this->constructed){
@@ -3801,35 +3843,44 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	protected function addDefaultWindows(){
 		$this->addWindow($this->getInventory(), ContainerIds::INVENTORY, true);
-
 		$this->addWindow($this->getArmorInventory(), ContainerIds::ARMOR, true);
 
-		$this->cursorInventory = new PlayerCursorInventory($this);
-		$this->addWindow($this->cursorInventory, ContainerIds::CURSOR, true);
+		$this->playerUIInventory = new PlayerUIInventory($this);
+		$this->addWindow($this->playerUIInventory, ContainerIds::UI, true);
 
-		$this->craftingGrid = new CraftingGrid($this, CraftingGrid::SIZE_SMALL);
+		$this->craftingGrid = $this->playerUIInventory->getCraftingGrid();
 
 		//TODO: more windows
 	}
 
+    /**
+     * @return PlayerCursorInventory
+     */
 	public function getCursorInventory() : PlayerCursorInventory{
-		return $this->cursorInventory;
+		return $this->playerUIInventory->getCursorInventory();
 	}
 
-	public function getCraftingGrid() : CraftingGrid{
+    /**
+     * @return PlayerUIInventory
+     */
+	public function getPlayerUI(): PlayerUIInventory {
+	    return $this->playerUIInventory;
+    }
+
+	public function getCraftingGrid() : CraftingGridInterface {
 		return $this->craftingGrid;
 	}
 
-	/**
-	 * @param CraftingGrid $grid
-	 */
-	public function setCraftingGrid(CraftingGrid $grid) : void{
+    /**
+     * @param CraftingGridInterface $grid
+     */
+	public function setCraftingGrid(CraftingGridInterface $grid) : void{
 		$this->craftingGrid = $grid;
 	}
 
 	public function doCloseInventory() : void{
 		/** @var Inventory[] $inventories */
-		$inventories = [$this->craftingGrid, $this->cursorInventory];
+		$inventories = [$this->craftingGrid, $this->getCursorInventory()];
 		foreach($inventories as $inventory){
 			$contents = $inventory->getContents();
 			if(count($contents) > 0){
@@ -3842,9 +3893,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			}
 		}
 
+		/*
 		if($this->craftingGrid->getGridWidth() > CraftingGrid::SIZE_SMALL){
 			$this->craftingGrid = new CraftingGrid($this, CraftingGrid::SIZE_SMALL);
-		}
+		}*/
 	}
 
 	/**

@@ -46,6 +46,7 @@ class ExplodePacket extends DataPacket{
 	}
 
 	protected function decodePayload(){
+	    /**
 		$this->position = $this->getVector3();
 		$this->radius = (float) ($this->getVarInt() / 32);
 		$count = $this->getUnsignedVarInt();
@@ -53,7 +54,7 @@ class ExplodePacket extends DataPacket{
 			$x = $y = $z = null;
 			$this->getSignedBlockPosition($x, $y, $z);
 			$this->records[$i] = new Vector3($x, $y, $z);
-		}
+		}*/
 	}
 
 	protected function encodePayload(){

@@ -23,9 +23,9 @@ declare(strict_types=1);
 
 namespace pocketmine\entity;
 
+use Ahc\Json\Comment as CommentedJsonDecoder;
 use function implode;
 use function in_array;
-use function json_decode;
 use function json_encode;
 use function strlen;
 
@@ -33,8 +33,7 @@ class Skin{
 	public const ACCEPTED_SKIN_SIZES = [
 		64 * 32 * 4,
 		64 * 64 * 4,
-		128 * 128 * 4,
-        256 * 128 * 4
+		128 * 128 * 4
 	];
 
 	/** @var string */
@@ -47,13 +46,16 @@ class Skin{
 	private $geometryName;
 	/** @var string */
 	private $geometryData;
+	/** @var array $additionalSkinData */
+	private $additionalSkinData = [];
 
-	public function __construct(string $skinId, string $skinData, string $capeData = "", string $geometryName = "", string $geometryData = ""){
+	public function __construct(string $skinId, string $skinData, string $capeData = "", string $geometryName = "", string $geometryData = "", array $additionalSkinData = []){
 		$this->skinId = $skinId;
 		$this->skinData = $skinData;
 		$this->capeData = $capeData;
 		$this->geometryName = $geometryName;
 		$this->geometryData = $geometryData;
+		$this->additionalSkinData = $additionalSkinData;
 	}
 
 	/**
@@ -65,7 +67,6 @@ class Skin{
 			$this->validate();
 			return true;
 		}catch(\InvalidArgumentException $e){
-		    var_dump($e->getMessage());
 			return false;
 		}
 	}
@@ -75,7 +76,7 @@ class Skin{
 	 */
 	public function validate() : void{
 		if($this->skinId === ""){
-			throw new \InvalidArgumentException("Skin ID must not be empty"); // TODO: Fix skins in 1.13
+			throw new \InvalidArgumentException("Skin ID must not be empty");
 		}
 		$len = strlen($this->skinData);
 		if(!in_array($len, self::ACCEPTED_SKIN_SIZES, true)){
@@ -122,6 +123,13 @@ class Skin{
 		return $this->geometryData;
 	}
 
+    /**
+     * @return array
+     */
+    public function getAdditionalSkinData(): array {
+        return $this->additionalSkinData;
+    }
+
 	/**
 	 * Hack to cut down on network overhead due to skins, by un-pretty-printing geometry JSON.
 	 *
@@ -131,7 +139,7 @@ class Skin{
 	 */
 	public function debloatGeometryData() : void{
 		if($this->geometryData !== ""){
-			$this->geometryData = (string) json_encode(json_decode($this->geometryData));
+			$this->geometryData = (string) json_encode((new CommentedJsonDecoder())->decode($this->geometryData));
 		}
 	}
 }

@@ -26,17 +26,7 @@ namespace pocketmine\network\mcpe\protocol;
 /**
  * Version numbers and packet IDs for the current Minecraft PE protocol
  */
-interface ProtocolInfo {
-
-    public const PROTOCOL_1_12 = 361;
-    public const PROTOCOL_1_13 = 371;
-
-    // beta protocols
-    public const PROTOCOL_1_13_0_9 = 385;
-    public const PROTOCOL_1_13_0_13 = 386;
-    public const PROTOCOL_1_13_0_15 = 387;
-    public const PROTOCOL_1_13_0_17 = 388;
-    public const PROTOCOL_1_13_0_18 = 389;
+interface ProtocolInfo{
 
 	/**
 	 * NOTE TO DEVELOPERS
@@ -49,38 +39,24 @@ interface ProtocolInfo {
 	/**
 	 * Actual Minecraft: PE protocol version
 	 */
-	public const CURRENT_PROTOCOL = 361;
+	public const CURRENT_PROTOCOL = 388;
 
     /**
-     * Supported protocols
+     * Supported protocols by Foxel
      */
-	public const ACCEPTED_PROTOCOLS = [
-	    self::PROTOCOL_1_12,
-        self::PROTOCOL_1_13,
-        self::PROTOCOL_1_13_0_9,
-        self::PROTOCOL_1_13_0_13,
-        self::PROTOCOL_1_13_0_15,
-        self::PROTOCOL_1_13_0_17,
-        self::PROTOCOL_1_13_0_18
+	public const SUPPORTED_PROTOCOLS = [
+	    361, // 1.12
+        388 // 1.13
     ];
-
-    /**
-     * Protocols
-     */
-	public const PROTOCOL_NAMES = [
-	    self::PROTOCOL_1_12,
-        self::PROTOCOL_1_13 // 1.13.0.8 hasn't too much changes
-    ];
-
 
 	/**
 	 * Current Minecraft PE version reported by the server. This is usually the earliest currently supported version.
 	 */
-	public const MINECRAFT_VERSION = 'v1.12.0';
+	public const MINECRAFT_VERSION = 'v1.13.0';
 	/**
 	 * Version number sent to clients in ping responses.
 	 */
-	public const MINECRAFT_VERSION_NETWORK = '1.12.0';
+	public const MINECRAFT_VERSION_NETWORK = '1.13.0';
 
 	public const LOGIN_PACKET = 0x01;
 	public const PLAY_STATUS_PACKET = 0x02;

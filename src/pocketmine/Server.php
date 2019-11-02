@@ -76,6 +76,7 @@ use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
+use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
 use pocketmine\network\mcpe\RakLibInterface;
 use pocketmine\network\Network;
 use pocketmine\network\query\QueryHandler;
@@ -97,6 +98,7 @@ use pocketmine\snooze\SleeperNotifier;
 use pocketmine\tile\Tile;
 use pocketmine\timings\Timings;
 use pocketmine\timings\TimingsHandler;
+use pocketmine\updater\AutoUpdater;
 use pocketmine\utils\Config;
 use pocketmine\utils\Internet;
 use pocketmine\utils\MainLogger;
@@ -213,6 +215,9 @@ class Server{
 
 	/** @var float */
 	private $profilingTickRate = 20;
+
+	/** @var AutoUpdater */
+	private $updater = null;
 
 	/** @var AsyncPool */
 	private $asyncPool;
@@ -514,17 +519,6 @@ class Server{
 		return $this->getConfigBool("force-gamemode", false);
 	}
 
-    /**
-     * @param int $protocol
-     * @return int
-     */
-	public static function getProtocolIdentifier(int $protocol): int {
-	    if($protocol >= ProtocolInfo::PROTOCOL_1_13) {
-	        return ProtocolInfo::PROTOCOL_1_13;
-        }
-	    return ProtocolInfo::PROTOCOL_1_12;
-    }
-
 	/**
 	 * Returns the gamemode text name
 	 *
@@ -600,7 +594,7 @@ class Server{
 	 * @return int
 	 */
 	public function getDifficulty() : int{
-		return $this->getConfigInt("difficulty", 1);
+		return $this->getConfigInt("difficulty", Level::DIFFICULTY_NORMAL);
 	}
 
 	/**
@@ -679,6 +673,13 @@ class Server{
 	 */
 	public function getLevelMetadata(){
 		return $this->levelMetadata;
+	}
+
+	/**
+	 * @return AutoUpdater
+	 */
+	public function getUpdater(){
+		return $this->updater;
 	}
 
 	/**
@@ -1101,11 +1102,17 @@ class Server{
 
 			return false;
 		}
-		/**
-		 * @var LevelProvider $provider
-		 * @see LevelProvider::__construct()
-		 */
-		$provider = new $providerClass($path);
+
+		try{
+			/**
+			 * @var LevelProvider $provider
+			 * @see LevelProvider::__construct()
+			 */
+			$provider = new $providerClass($path);
+		}catch(LevelException $e){
+			$this->logger->error($this->getLanguage()->translateString("pocketmine.level.loadError", [$name, $e->getMessage()]));
+			return false;
+		}
 		try{
 			GeneratorManager::getGenerator($provider->getGenerator(), true);
 		}catch(\InvalidArgumentException $e){
@@ -1529,7 +1536,7 @@ class Server{
 				"force-gamemode" => false,
 				"hardcore" => false,
 				"pvp" => true,
-				"difficulty" => 1,
+				"difficulty" => Level::DIFFICULTY_NORMAL,
 				"generator-settings" => "",
 				"level-name" => "world",
 				"level-seed" => "",
@@ -1549,11 +1556,15 @@ class Server{
 			$this->baseLang = new BaseLang($this->getConfigString("language", $this->getProperty("settings.language", BaseLang::FALLBACK_LANGUAGE)));
 			$this->logger->info($this->getLanguage()->translateString("language.selected", [$this->getLanguage()->getName(), $this->getLanguage()->getLang()]));
 
-			if(((int) ini_get('zend.assertions')) !== -1){
-				$this->logger->warning("Debugging assertions are enabled, this may impact on performance. To disable them, set `zend.assertions = -1` in php.ini.");
+			if(\pocketmine\IS_DEVELOPMENT_BUILD and !((bool) $this->getProperty("settings.enable-dev-builds", false))){
+				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error1", [\pocketmine\NAME]));
+				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error2"));
+				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error3"));
+				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error4", ["settings.enable-dev-builds"]));
+				$this->logger->emergency($this->baseLang->translateString("pocketmine.server.devBuild.error5", ["https://github.com/pmmp/PocketMine-MP/releases"]));
+				$this->forceShutdown();
+				return;
 			}
-
-			ini_set('assert.exception', '1');
 
 			if($this->logger instanceof MainLogger){
 				$this->logger->setLogDebug(\pocketmine\DEBUG > 1);
@@ -1691,6 +1702,7 @@ class Server{
 			ItemFactory::init();
 			Item::initCreativeItems();
 			Biome::init();
+			RuntimeBlockMapping::init();
 
 			LevelProviderManager::init();
 			if(extension_loaded("leveldb")){
@@ -1712,6 +1724,8 @@ class Server{
 			$this->queryRegenerateTask = new QueryRegenerateEvent($this);
 
 			$this->pluginManager->loadPlugins($this->pluginPath);
+
+			$this->updater = new AutoUpdater($this, $this->getProperty("auto-updater.host", "update.pmmp.io"));
 
 			$this->enablePlugins(PluginLoadOrder::STARTUP);
 
@@ -1899,16 +1913,15 @@ class Server{
 		return count($recipients);
 	}
 
-    /**
-     * Broadcast MCPE packet to list of players
-     *
-     * @param array $players
-     * @param DataPacket $packet
-     * @param bool $addProtocol
-     */
-	public function broadcastPacket(array $players, DataPacket $packet, bool $addProtocol = false){
+	/**
+	 * Broadcasts a Minecraft packet to a list of players
+	 *
+	 * @param Player[]   $players
+	 * @param DataPacket $packet
+	 */
+	public function broadcastPacket(array $players, DataPacket $packet){
 		$packet->encode();
-		$this->batchPackets($players, [$packet], false, false, $addProtocol);
+		$this->batchPackets($players, [$packet], false);
 	}
 
 	/**
@@ -1918,33 +1931,11 @@ class Server{
 	 * @param DataPacket[] $packets
 	 * @param bool         $forceSync
 	 * @param bool         $immediate
-     * @param bool         $addProtocol
 	 */
-	public function batchPackets(array $players, array $packets, bool $forceSync = false, bool $immediate = false, bool $addProtocol = false){
+	public function batchPackets(array $players, array $packets, bool $forceSync = false, bool $immediate = false){
 		if(empty($packets)){
 			throw new \InvalidArgumentException("Cannot send empty batch");
 		}
-
-        if($addProtocol) {
-            $packetList = [];
-            $playerList = [];
-            foreach ($players as $player) {
-                if(!isset($packetList[$id = self::getProtocolIdentifier($player->getProtocol())])) {
-                    foreach ($packets as $packet) {
-                        $pk = clone $packet;
-                        $pk->protocol = $player->getProtocol();
-                        $packetList[$id][] = $pk;
-                        $playerList[$id][] = $player;
-                    }
-                }
-            }
-
-            foreach ($packetList as $protocol => $packetToSend) {
-                $this->batchPackets($playerList[$protocol], $packetList, $forceSync, $immediate, false);
-            }
-            return;
-        }
-
 		Timings::$playerNetworkTimer->startTiming();
 
 		$targets = array_filter($players, function(Player $player) : bool{ return $player->isConnected(); });
@@ -2209,8 +2200,6 @@ class Server{
 			$this->dispatchSignals = true;
 		}
 
-		$this->logger->info($this->getLanguage()->translateString("pocketmine.server.defaultGameMode", [self::getGamemodeString($this->getGamemode())]));
-
 		$this->logger->info($this->getLanguage()->translateString("pocketmine.server.startFinished", [round(microtime(true) - \pocketmine\START_TIME, 3)]));
 
 		$this->tickProcessor();
@@ -2411,7 +2400,7 @@ class Server{
 
 		$pk->entries[] = PlayerListEntry::createAdditionEntry($uuid, $entityId, $name, $skin, $xboxUserId);
 
-		$this->broadcastPacket($players ?? $this->playerList, $pk, true);
+		$this->broadcastPacket($players ?? $this->playerList, $pk);
 	}
 
 	/**
@@ -2422,7 +2411,7 @@ class Server{
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_REMOVE;
 		$pk->entries[] = PlayerListEntry::createRemovalEntry($uuid);
-		$this->broadcastPacket($players ?? $this->playerList, $pk, true);
+		$this->broadcastPacket($players ?? $this->playerList, $pk);
 	}
 
 	/**
@@ -2431,7 +2420,6 @@ class Server{
 	public function sendFullPlayerListData(Player $p){
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
-		$pk->protocol = $p->getProtocol();
 		foreach($this->playerList as $player){
 			$pk->entries[] = PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkin(), $player->getXuid());
 		}

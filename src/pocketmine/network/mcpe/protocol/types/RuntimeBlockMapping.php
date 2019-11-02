@@ -24,91 +24,89 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\protocol\types;
 
 use pocketmine\block\BlockIds;
+use pocketmine\nbt\BigEndianNBTStream;
 use pocketmine\nbt\LittleEndianNBTStream;
-use pocketmine\nbt\NBT;
+use pocketmine\nbt\NBTStream;
+use pocketmine\nbt\NetworkLittleEndianNBTStream;
+use pocketmine\nbt\ReaderTracker;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ListTag;
-use pocketmine\nbt\tag\ShortTag;
-use pocketmine\nbt\tag\StringTag;
-use pocketmine\network\mcpe\NetworkBinaryStream;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
-use pocketmine\network\mcpe\protocol\StartGamePacket;
 use function file_get_contents;
 use function getmypid;
 use function json_decode;
 use function mt_rand;
 use function mt_srand;
 use function shuffle;
-use const pocketmine\RESOURCE_PATH;
 
 /**
  * @internal
  */
-final class RuntimeBlockMapping {
-
-    /** @var RuntimeBlockMapping[] $mappings */
-    private static $mappings = [];
+final class RuntimeBlockMapping{
 
 	/** @var int[] */
-	private $legacyToRuntimeMap = [];
-
+	private static $legacyToRuntimeMap = [];
 	/** @var int[] */
-	private $runtimeToLegacyMap = [];
+	private static $runtimeToLegacyMap = [];
+	/** @var mixed|null */
+	private static $bedrockKnownStates = null;
 
-	/** @var mixed[] */
-	private $bedrockKnownStates;
-
-	/** @var string $serializedTable */
-	private $serializedTable;
-
-    /**
-     * RuntimeBlockMapping constructor.
-     * @param int $protocol
-     * @param bool $buildNBT
-     */
-	public function __construct(int $protocol, bool $buildNBT) {
-	    $files = $this->getResourceFiles($protocol);
-        $legacyIdMap = json_decode(file_get_contents(array_shift($files)), true); // block ids
-        $compressedTable = json_decode(file_get_contents(array_shift($files)), true); // required block states
-        $decompressed = [];
-
-        if($buildNBT) {
-            $this->serializedTable = file_get_contents(RESOURCE_PATH . "vanilla/full_data_370.txt");
-        }
-
-        foreach($compressedTable as $prefix => $entries){
-            foreach($entries as $shortStringId => $states){
-                foreach($states as $state){
-                    $name = "$prefix:$shortStringId";
-                    $decompressed[] = [
-                        "name" => $name,
-                        "data" => $state,
-                        "legacy_id" => $legacyIdMap[$name]
-                    ];
-                }
-            }
-        }
-
-        $this->bedrockKnownStates = self::randomizeTable($decompressed);
-
-        foreach($this->bedrockKnownStates as $k => $obj){
-            if($obj["data"] > 15){
-                //TODO: in 1.12 they started using data values bigger than 4 bits which we can't handle right now
-                continue;
-            }
-            //this has to use the json offset to make sure the mapping is consistent with what we send over network, even though we aren't using all the entries
-            self::registerMapping($k, $obj["legacy_id"], $obj["data"]);
-        }
-
-        if(!$buildNBT) {
-            $this->serializedTable = StartGamePacket::serializeBlockTable($this->bedrockKnownStates);
-        }
+	private function __construct(){
+		//NOOP
 	}
 
 	public static function init() : void{
-		self::$mappings[ProtocolInfo::PROTOCOL_1_12] = new RuntimeBlockMapping(ProtocolInfo::PROTOCOL_1_12, false);
-		self::$mappings[ProtocolInfo::PROTOCOL_1_13] = new RuntimeBlockMapping(ProtocolInfo::PROTOCOL_1_13, true);
+	    // 1.12 TODO
+	    /**
+		$legacyIdMap = json_decode(file_get_contents(\pocketmine\RESOURCE_PATH . "vanilla/block_id_map.json"), true);
+
+		$compressedTable = json_decode(file_get_contents(\pocketmine\RESOURCE_PATH . "vanilla/required_block_states.json"), true);
+		$decompressed = [];
+
+		foreach($compressedTable as $prefix => $entries){
+			foreach($entries as $shortStringId => $states){
+				foreach($states as $state){
+					$name = "$prefix:$shortStringId";
+					$decompressed[] = [
+						"name" => $name,
+						"data" => $state,
+						"legacy_id" => $legacyIdMap[$name]
+					];
+				}
+			}
+		}
+		self::$bedrockKnownStates = self::randomizeTable($decompressed);
+
+		foreach(self::$bedrockKnownStates as $k => $obj){
+			if($obj["data"] > 15){
+				//TODO: in 1.12 they started using data values bigger than 4 bits which we can't handle right now
+				continue;
+			}
+			//this has to use the json offset to make sure the mapping is consistent with what we send over network, even though we aren't using all the entries
+			self::registerMapping($k, $obj["legacy_id"], $obj["data"]);
+		}*/
+
+        $compressedTable = new BigEndianNBTStream();
+        /** @var ListTag $tag */
+        $tag = $compressedTable->read(file_get_contents(\pocketmine\RESOURCE_PATH . "vanilla/runtime_block_states_1_13.dat"))["Palette"];
+
+        /** @var CompoundTag $value*/
+        foreach($tag->getAllValues() as $i => $value) {
+            $id = $value->getShort("id");
+            $meta = $value->getShort("meta");
+            self::registerMapping($i, $id, $meta);
+
+            $value->offsetUnset("meta");
+        }
+
+        $stream = new NetworkLittleEndianNBTStream();
+        $stream->write(["Palette" => $tag]);
+        self::$bedrockKnownStates = $stream->buffer;
+	}
+
+	private static function lazyInit() : void{
+		if(self::$bedrockKnownStates === null){
+			self::init();
+		}
 	}
 
 	/**
@@ -128,91 +126,43 @@ final class RuntimeBlockMapping {
 		return $table;
 	}
 
-    /**
-     * @param int $id
-     * @param int $meta
-     * @param int $protocol
-     *
-     * @return int
-     */
-	public static function toStaticRuntimeId(int $id, int $meta = 0, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : int{
-        $class = self::$mappings[self::getProtocol($protocol)];
+	/**
+	 * @param int $id
+	 * @param int $meta
+	 *
+	 * @return int
+	 */
+	public static function toStaticRuntimeId(int $id, int $meta = 0) : int{
+		self::lazyInit();
 		/*
 		 * try id+meta first
 		 * if not found, try id+0 (strip meta)
 		 * if still not found, return update! block
 		 */
-		return $class->legacyToRuntimeMap[($id << 4) | $meta] ?? $class->legacyToRuntimeMap[$id << 4] ?? $class->legacyToRuntimeMap[BlockIds::INFO_UPDATE << 4];
+		return self::$legacyToRuntimeMap[($id << 4) | $meta] ?? self::$legacyToRuntimeMap[$id << 4] ?? self::$legacyToRuntimeMap[BlockIds::INFO_UPDATE << 4];
 	}
 
-    /**
-     * @param int $runtimeId
-     * @param int $protocol
-     * @return array
-     */
-	public static function fromStaticRuntimeId(int $runtimeId, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) : array{
-	    $class = self::$mappings[self::getProtocol($protocol)];
-		$v = $class->runtimeToLegacyMap[$runtimeId];
+	/**
+	 * @param int $runtimeId
+	 *
+	 * @return int[] [id, meta]
+	 */
+	public static function fromStaticRuntimeId(int $runtimeId) : array{
+		self::lazyInit();
+		$v = self::$runtimeToLegacyMap[$runtimeId];
 		return [$v >> 4, $v & 0xf];
 	}
 
-	private function registerMapping(int $staticRuntimeId, int $legacyId, int $legacyMeta) : void{
-		$this->legacyToRuntimeMap[($legacyId << 4) | $legacyMeta] = $staticRuntimeId;
-		$this->runtimeToLegacyMap[$staticRuntimeId] = ($legacyId << 4) | $legacyMeta;
+	private static function registerMapping(int $staticRuntimeId, int $legacyId, int $legacyMeta) : void{
+		self::$legacyToRuntimeMap[($legacyId << 4) | $legacyMeta] = $staticRuntimeId;
+		self::$runtimeToLegacyMap[$staticRuntimeId] = ($legacyId << 4) | $legacyMeta;
 	}
 
-    /**
-     * @param int $protocol
-     * @return array
-     */
-	public static function getBedrockKnownStates(int $protocol = ProtocolInfo::CURRENT_PROTOCOL): array {
-        $class = self::$mappings[self::getProtocol($protocol)];
-		return $class->bedrockKnownStates;
+	/**
+	 * @return array
+	 */
+	public static function getBedrockKnownStates() : string {
+		self::lazyInit();
+		return self::$bedrockKnownStates;
 	}
-
-    /**
-     * @param int $protocol
-     * @return string
-     */
-	public static function getSerializeBlockTable(int $protocol = ProtocolInfo::CURRENT_PROTOCOL) {
-	    $class = self::$mappings[self::getProtocol($protocol)];
-
-	    if($class->serializedTable === "") {
-	        $class->serializedTable = StartGamePacket::serializeBlockTable(self::getBedrockKnownStates($protocol));
-        }
-
-	    return $class->serializedTable;
-    }
-
-    /**
-     * @param int $protocol
-     * @return int
-     */
-    private static function getProtocol(int $protocol) {
-	    if($protocol >= ProtocolInfo::PROTOCOL_1_13) {
-	        return ProtocolInfo::PROTOCOL_1_13;
-        }
-	    return ProtocolInfo::PROTOCOL_1_12;
-    }
-
-    /**
-     * @param int $protocol
-     * @return array
-     */
-	private function getResourceFiles(int $protocol): array {
-	    if($protocol == ProtocolInfo::PROTOCOL_1_12) {
-            return [
-                \pocketmine\RESOURCE_PATH . "vanilla/block_id_map.json",
-                \pocketmine\RESOURCE_PATH . "vanilla/required_block_states.json"
-            ];
-        }
-
-        return [
-            \pocketmine\RESOURCE_PATH . "vanilla/block_id_map_370.json",
-            \pocketmine\RESOURCE_PATH . "vanilla/required_block_states_370.json",
-            \pocketmine\RESOURCE_PATH . "vanilla/advanced_block_states_370.json"
-        ];
-    }
 }
-
-RuntimeBlockMapping::init();

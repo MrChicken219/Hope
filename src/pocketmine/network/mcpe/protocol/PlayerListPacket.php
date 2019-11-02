@@ -37,9 +37,6 @@ class PlayerListPacket extends DataPacket{
 	public const TYPE_ADD = 0;
 	public const TYPE_REMOVE = 1;
 
-	/** @var int $protocol */
-	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
-
 	/** @var PlayerListEntry[] */
 	public $entries = [];
 	/** @var int */
@@ -87,95 +84,31 @@ class PlayerListPacket extends DataPacket{
 	protected function encodePayload(){
 		$this->putByte($this->type);
 		$this->putUnsignedVarInt(count($this->entries));
-		foreach($this->entries as $entry) {
-            if ($this->type === self::TYPE_ADD) {
-                $this->putUUID($entry->uuid);
-                $this->putEntityUniqueId($entry->entityUniqueId);
-                $this->putString($entry->username);
+		foreach($this->entries as $entry){
+			if($this->type === self::TYPE_ADD){
+				$this->putUUID($entry->uuid);
+				$this->putEntityUniqueId($entry->entityUniqueId);
+				$this->putString($entry->username);
+				/* 1.12
+				$this->putString($entry->skin->getSkinId());
+				$this->putString($entry->skin->getSkinData());
+				$this->putString($entry->skin->getCapeData());
+				$this->putString($entry->skin->getGeometryName());
+				$this->putString($entry->skin->getGeometryData());
+				*/
+				$this->putString($entry->xboxUserId);
+				$this->putString($entry->platformChatId);
 
-                if ($this->protocol < ProtocolInfo::PROTOCOL_1_13) {
-                    $this->putString($entry->skin->getSkinId());
-                    $this->putString($entry->skin->getSkinData());
-                    $this->putString($entry->skin->getCapeData());
-                    $this->putString($entry->skin->getGeometryName());
-                    $this->putString($entry->skin->getGeometryData());
-                }
-
-                $this->putString($entry->xboxUserId);
-                $this->putString($entry->platformChatId);
-
-                if ($this->protocol >= ProtocolInfo::PROTOCOL_1_13) {
-                    if ($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_9) {
-                        $this->putLInt(-1); // TODO: Add device os api
-                    }
-
-                    $this->putSerializedSkin($entry->skin);
-
-                    if ($this->protocol >= ProtocolInfo::PROTOCOL_1_13_0_9) {
-                        $this->putByte(0); // Is teacher
-                        $this->putByte(0); // Is host
-                    }
-                }
-            } else {
-                $this->putUUID($entry->uuid);
-            }
-        }
+				// 1.13
+                $this->putLInt(-1);
+                $this->putSerializedSkin($entry->skin->getSkinId(), $entry->skin->getSkinData(), $entry->skin->getGeometryName(), $entry->skin->getGeometryData(), $entry->skin->getCapeData(), $entry->skin->getAdditionalSkinData());
+			    $this->putBool(false);
+			    $this->putBool(false);
+			}else{
+				$this->putUUID($entry->uuid);
+			}
+		}
 	}
-
-    /**
-     * @param Skin $skin
-     */
-    protected function putSerializedSkin(Skin $skin) {
-	    $skinData = $skin->getSkinData();
-	    $skinGeometryName = $skin->getGeometryName();
-	    $skinGeometryData = $skin->getGeometryData();
-	    $skinId = $skin->getSkinId();
-
-        if (empty($skinGeomtryName) || $skinGeomtryName == "") {
-            $skinGeometryName = "geometry.humanoid.custom";
-        }
-
-        $this->putString($skinId);
-        $this->putString('{"geometry" : {"default" : "' . $skinGeometryName . '"}}');
-
-        $width = 64;
-        $height = strlen($skinData) >> 8;
-        while ($height > $width) {
-            $width <<= 1;
-            $height >>= 1;
-        }
-
-
-        $this->putLInt($width);
-        $this->putLInt($height);
-        $this->putString($skinData);
-        $this->putLInt(0);
-
-        if (empty($capeData) || $capeData == "") {
-            $this->putLInt(0);
-            $this->putLInt(0);
-            $this->putString("");
-        } else {
-            $width = 1;
-            $height = strlen($capeData) >> 2;
-            while ($height > $width) {
-                $width <<= 1;
-                $height >>= 1;
-            }
-            $this->putLInt($width);
-            $this->putLInt($height);
-            $this->putString($capeData);
-        }
-        $this->putString($skinGeometryData); // Skin Geometry Data
-        $this->putString(""); // Serialized Animation Data
-        $this->putByte(0); // Is Premium Skin
-        $this->putByte(0); // Is Persona Skin
-        $this->putByte(0); // Is Persona Cape on Classic Skin
-
-        $this->putString('');
-        $uniqId = $skinId . $skinGeometryName . "-" . microtime(true);
-        $this->putString($uniqId); // Full Skin ID
-    }
 
 	public function handle(NetworkSession $session) : bool{
 		return $session->handlePlayerList($this);

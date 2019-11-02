@@ -183,7 +183,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		$pk = new PlayerSkinPacket();
 		$pk->uuid = $this->getUniqueId();
 		$pk->skin = $this->skin;
-		$this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk, true);
+		$this->server->broadcastPacket($targets ?? $this->hasSpawned, $pk);
 	}
 
 	public function jump() : void{
@@ -587,6 +587,9 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		return (int) min(100, 7 * $this->getXpLevel());
 	}
 
+	/**
+	 * @return PlayerInventory
+	 */
 	public function getInventory(){
 		return $this->inventory;
 	}
@@ -848,7 +851,6 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 			$pk = new PlayerListPacket();
 			$pk->type = PlayerListPacket::TYPE_ADD;
 			$pk->entries = [PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skin)];
-			$pk->protocol = $player->getProtocol();
 			$player->dataPacket($pk);
 		}
 
@@ -871,7 +873,6 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 		if(!($this instanceof Player)){
 			$pk = new PlayerListPacket();
-			$pk->protocol = $player->getProtocol();
 			$pk->type = PlayerListPacket::TYPE_REMOVE;
 			$pk->entries = [PlayerListEntry::createRemovalEntry($this->uuid)];
 			$player->dataPacket($pk);

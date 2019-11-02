@@ -32,9 +32,6 @@ use pocketmine\utils\UUID;
 class PlayerSkinPacket extends DataPacket{
 	public const NETWORK_ID = ProtocolInfo::PLAYER_SKIN_PACKET;
 
-	/** @var int $protocol */
-	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
-
 	/** @var UUID */
 	public $uuid;
 	/** @var string */

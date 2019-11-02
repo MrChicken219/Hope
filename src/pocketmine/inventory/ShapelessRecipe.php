@@ -50,7 +50,7 @@ class ShapelessRecipe implements CraftingRecipe{
 		return array_map(function(Item $item) : Item{ return clone $item; }, $this->results);
 	}
 
-	public function getResultsFor(CraftingGrid $grid) : array{
+	public function getResultsFor(CraftingGridInterface $grid) : array{
 		return $this->getResults();
 	}
 
@@ -120,7 +120,7 @@ class ShapelessRecipe implements CraftingRecipe{
 	 *
 	 * @return bool
 	 */
-	public function matchesCraftingGrid(CraftingGrid $grid) : bool{
+	public function matchesCraftingGrid(CraftingGridInterface $grid) : bool{
 		//don't pack the ingredients - shapeless recipes require that each ingredient be in a separate slot
 		$input = $grid->getContents();
 
