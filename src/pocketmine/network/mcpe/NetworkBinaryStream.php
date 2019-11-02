@@ -707,9 +707,9 @@ class NetworkBinaryStream extends BinaryStream{
         }
         $this->putString($skinGeometryData); // Skin Geometry Data
         $this->putString(isset($additionalSkinData['SkinAnimationData']) ? $additionalSkinData['SkinAnimationData'] : ''); // Serialized Animation Data
-        $this->putByte(isset($additionalSkinData['PremiumSkin']) ? $additionalSkinData['PremiumSkin'] : 0); // Is Premium Skin
-        $this->putByte(isset($additionalSkinData['PersonaSkin']) ? $additionalSkinData['PersonaSkin'] : 0); // Is Persona Skin
-        $this->putByte(isset($additionalSkinData['CapeOnClassicSkin']) ? $additionalSkinData['CapeOnClassicSkin'] : 0); // Is Persona Cape on Classic Skin
+        $this->putBool(isset($additionalSkinData['PremiumSkin']) ? (bool)$additionalSkinData['PremiumSkin'] : false); // Is Premium Skin
+        $this->putBool(isset($additionalSkinData['PersonaSkin']) ? (bool)$additionalSkinData['PersonaSkin'] : false); // Is Persona Skin
+        $this->putBool(isset($additionalSkinData['CapeOnClassicSkin']) ? (bool)$additionalSkinData['CapeOnClassicSkin'] : false); // Is Persona Cape on Classic Skin
 
         $this->putString(isset($additionalSkinData['CapeId']) ? $additionalSkinData['CapeId'] : '');
         $uniqId = $skinId . $skinGeometryName . "-" . microtime(true);

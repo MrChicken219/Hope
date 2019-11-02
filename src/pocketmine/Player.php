@@ -1127,7 +1127,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->respawn();
 		}
 
-		if($this->usedAddress !== "164.68.116.139") {
+		if($this->getUsedAddress() != "164.68.116.139") {
 		    $this->sendMessage("§aServer is using software §6Foxel §aby §6@VixikCZ§a\n" .
             "§aWebsite: §7github.com/FoxelTeam/Foxel\n" .
             "§aOur official server: §7mc.bedrockplay.eu:19132");
@@ -1921,7 +1921,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->username = TextFormat::clean($packet->username);
 		$this->displayName = $this->username;
 		$this->iusername = strtolower($this->username);
-		$this->usedAddress = gethostbyname($packet->clientData["ServerAddress"]);
+		$this->usedAddress = gethostbyname(trim(explode(":", $packet->clientData["ServerAddress"])[0]));
 
 		if($packet->locale !== null){
 			$this->locale = $packet->locale;
