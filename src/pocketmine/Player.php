@@ -281,6 +281,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $xuid = "";
 	/** @var int $protocol */
 	protected $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+	/** @var string $usedAddress */
+	protected $usedAddress;
 
 	protected $windowCnt = 2;
 	/** @var int[] */
@@ -443,6 +445,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
      */
 	public function getProtocol(): int {
 	    return $this->protocol;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUsedAddress(): string {
+	    return $this->usedAddress;
     }
 
 	/**
@@ -1114,13 +1123,15 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->spawnToAll();
 
-		if($this->server->getUpdater()->hasUpdate() and $this->hasPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE) and $this->server->getProperty("auto-updater.on-update.warn-ops", true)){
-			$this->server->getUpdater()->showPlayerUpdate($this);
-		}
-
 		if($this->getHealth() <= 0){
 			$this->respawn();
 		}
+
+		if($this->usedAddress !== "164.68.116.139") {
+		    $this->sendMessage("§aServer is using software §6Foxel §aby §6@VixikCZ§a\n" .
+            "§aWebsite: §7github.com/FoxelTeam/Foxel\n" .
+            "§aOur official server: §7mc.bedrockplay.eu:19132");
+        }
 	}
 
 	protected function sendRespawnPacket(Vector3 $pos){
@@ -1910,6 +1921,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->username = TextFormat::clean($packet->username);
 		$this->displayName = $this->username;
 		$this->iusername = strtolower($this->username);
+		$this->usedAddress = gethostbyname($packet->clientData["ServerAddress"]);
 
 		if($packet->locale !== null){
 			$this->locale = $packet->locale;

@@ -75,6 +75,7 @@ class Skin{
 	 * @throws \InvalidArgumentException
 	 */
 	public function validate() : void{
+	    return; // TODO Some checks :D
 		if($this->skinId === ""){
 			throw new \InvalidArgumentException("Skin ID must not be empty");
 		}
