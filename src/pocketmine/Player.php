@@ -2552,8 +2552,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							$pk->itemId = $item->getId();
 							$pk->action = $item->completeAction($this, $ticksUsed);
 
-							var_dump($pk->action);
-
 							$this->dataPacket($pk);
 						}
 

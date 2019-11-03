@@ -34,7 +34,6 @@ class SerializedImage {
      * @return SerializedImage
      */
     public static function fromLegacy(string $data): SerializedImage {
-        var_dump(strlen($data));
         switch (strlen($data)) {
             case 64 * 32 * 4:
                 return new SerializedImage(64, 32, $data);
