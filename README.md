@@ -27,12 +27,5 @@ By the way, you can tell us to add your server to this list from our Discord gro
 ## Do you need help about Foxel?
 Join our Discord group and contact us!
 [Join Now](https://discord.gg/uK7Qgr4)
-## Any way to install this fast?
-#Yeah, it's have 2 way:
-1. [All] Download Foxel.phar [here](https://github.com) and replace it with PocketMine-MP.phar (Remember to change the name to PocketMine-MP.phar, then reload your server
-2. [Vps Only] If you using Vps so that much faster than the way 1,
-	
-	Type Lunux:
-	Type Windows:
-	
-######Thanks for read this!
+## Installation 
+[Tip](https://github.com/FoxelTeam/Foxel-installation-source/blob/master/README.md]
