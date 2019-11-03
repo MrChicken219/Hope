@@ -28,4 +28,4 @@ By the way, you can tell us to add your server to this list from our Discord gro
 Join our Discord group and contact us!
 [Join Now](https://discord.gg/uK7Qgr4)
 ## Installation 
-[Tip](https://github.com/FoxelTeam/Foxel-installation-source/blob/master/README.md]
+[Tip](https://github.com/FoxelTeam/Foxel-installation-source/blob/master/README.md)
