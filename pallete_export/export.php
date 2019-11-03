@@ -4,6 +4,10 @@
 
 declare(strict_types=0);
 
+var_dump(gethostbyname("mc.bedrockplay.eu"));
+
+return;
+
 define("option", 2);
 define("file", getcwd() . DIRECTORY_SEPARATOR . "BlockPallet370.json");
 //define("export_file", getcwd() . DIRECTORY_SEPARATOR . "required_block_states_370.json");

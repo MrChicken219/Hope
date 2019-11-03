@@ -1,0 +1,6 @@
+name: Debugger
+api: 3.0.0
+version: 1.0
+description: Debug
+author: Vix
+main: debug\Debug
