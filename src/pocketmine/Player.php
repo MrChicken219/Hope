@@ -1938,23 +1938,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->protocol = $packet->protocol;
 
-        $additionalSkinData = [];
-		foreach ($packet->clientData as $i => $v) {
-		    if(in_array($i, ["SkinAnimationData", "PremiumSkin", "PersonaSkin", "CapeOnClassicSkin", "CapeId", "SkinImageWidth", "SkinImageHeight", "SkinResourcePatch", "AnimatedImageDataAnimatedImageData", "AnimatedImageData"])) {
-		        $additionalSkinData[$i] = $v;
-            }
-        }
-
-		$skin = new Skin(
-			$packet->clientData["SkinId"],
-			base64_decode($packet->clientData["SkinData"] ?? ""),
-			base64_decode($packet->clientData["CapeData"] ?? ""),
-			$packet->clientData["SkinGeometryName"] ?? "",
-			base64_decode($packet->clientData["SkinGeometry"] ?? ""),
-            $additionalSkinData
-		);
-
-
+		$skin = $packet->skin;
 		if(!$skin->isValid()){
 			$this->close("", "disconnectionScreen.invalidSkin");
 

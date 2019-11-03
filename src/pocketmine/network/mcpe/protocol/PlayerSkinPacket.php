@@ -27,6 +27,7 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\entity\Skin;
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\utils\SerializedImage;
 use pocketmine\utils\UUID;
 
 class PlayerSkinPacket extends DataPacket{
@@ -43,13 +44,12 @@ class PlayerSkinPacket extends DataPacket{
 
 	protected function decodePayload(){
 		$this->uuid = $this->getUUID();
-		$this->getSerializedSkin($skinId, $skinData, $geometryModel, $geometryData, $capeData, $additionalSkinData);
-		$this->skin = new Skin($skinId, $skinData, $capeData, $geometryModel, $geometryData, $additionalSkinData);
+		$this->skin = $this->getSkin(); // 1.13
 	}
 
 	protected function encodePayload(){
 		$this->putUUID($this->uuid);
-		$this->putSerializedSkin($this->skin->getSkinId(), $this->skin->getSkinData(), $this->skin->getGeometryName(), $this->skin->getGeometryData(), $this->skin->getCapeData(), $this->skin->getAdditionalSkinData());
+		$this->putSkin($this->skin); // 1.13
 	}
 
 	public function handle(NetworkSession $session) : bool{

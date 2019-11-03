@@ -26,7 +26,9 @@ namespace pocketmine\network\mcpe;
 #include <rules/DataPacket.h>
 
 use pocketmine\entity\Attribute;
+use pocketmine\entity\data\SkinAnimation;
 use pocketmine\entity\Entity;
+use pocketmine\entity\Skin;
 use pocketmine\item\Durable;
 use pocketmine\item\Item;
 use pocketmine\item\ItemFactory;
@@ -39,6 +41,7 @@ use pocketmine\network\mcpe\protocol\types\CommandOriginData;
 use pocketmine\network\mcpe\protocol\types\EntityLink;
 use pocketmine\network\mcpe\protocol\types\StructureSettings;
 use pocketmine\utils\BinaryStream;
+use pocketmine\utils\SerializedImage;
 use pocketmine\utils\SkinUtils;
 use pocketmine\utils\UUID;
 use function count;
@@ -631,6 +634,76 @@ class NetworkBinaryStream extends BinaryStream{
 		$this->putInt($structureSettings->integritySeed);
 	}
 
+	public function putSkin(Skin $skin) {
+	    $this->putString($skin->getSkinId());
+	    $this->putString($skin->getSkinResourcePatch());
+	    $this->putImage($skin->getSkinData());
+
+	    $this->putLInt(count($skin->animations)); // TODO: Animations
+        foreach ($skin->animations as $animation) {
+            $this->putImage($animation->image);
+            $this->putLInt($animation->type);
+            $this->putLFloat($animation->frames);
+        }
+
+        $this->putImage($skin->getCapeData());
+        $this->putString($skin->getGeometryData());
+        $this->putString($skin->getAnimationData());
+
+        $this->putBool($skin->isPremium());
+        $this->putBool($skin->isPersona());
+        $this->putBool($skin->isCapeOnClassic());
+        $this->putString($skin->getCapeId());
+
+        $this->putString($skin->getFullSkinId());
+    }
+
+    public function getSkin(): Skin {
+	    $skin = new Skin();
+	    $skin->setSkinId($this->getString());
+	    $skin->setSkinResourcePatch($this->getString());
+	    $skin->setSkinData($this->getImage());
+
+	    $count = $this->getLInt(); // TODO: Animations
+        for($i = 0; $i < $count; $i++) {
+            $image = $this->getImage();
+            $type = $this->getLInt();
+            $frames = $this->getLFloat();
+            $skin->animations[] = new SkinAnimation($image, $type, $frames);
+        }
+
+        $skin->setCapeData($this->getImage());
+        $skin->setGeometryData($this->getString());
+        $skin->setAnimationData($this->getString());
+
+        $skin->setPremium($this->getBool());
+        $skin->setPersona($this->getBool());
+        $skin->setCapeOnClassic($this->getBool());
+        $skin->setCapeId($this->getString());
+
+        $this->getString(); // TODO: Full skin id
+        return $skin;
+    }
+
+    /**
+     * @param SerializedImage $image
+     */
+    public function putImage(SerializedImage $image) {
+	    $this->putLInt($image->width);
+	    $this->putLInt($image->height);
+	    $this->putString($image->data);
+    }
+
+    /**
+     * @return SerializedImage
+     */
+    public function getImage(): SerializedImage {
+        $width = $this->getLInt();
+        $height = $this->getLInt();
+        $data = $this->getString();
+        return new SerializedImage($width, $height, $data);
+    }
+
     /**
      * @param $skinId
      * @param $skinData
@@ -706,14 +779,14 @@ class NetworkBinaryStream extends BinaryStream{
             $this->putString($capeData);
         }
         $this->putString($skinGeometryData); // Skin Geometry Data
-        $this->putString(isset($additionalSkinData['SkinAnimationData']) ? $additionalSkinData['SkinAnimationData'] : ''); // Serialized Animation Data
+        $this->putString(isset($additionalSkinData['SkinAnimationData']) ? $additionalSkinData['SkinAnimationData'] : ''); // Serialized SkinAnimation Data
         $this->putBool(isset($additionalSkinData['PremiumSkin']) ? (bool)$additionalSkinData['PremiumSkin'] : false); // Is Premium Skin
         $this->putBool(isset($additionalSkinData['PersonaSkin']) ? (bool)$additionalSkinData['PersonaSkin'] : false); // Is Persona Skin
         $this->putBool(isset($additionalSkinData['CapeOnClassicSkin']) ? (bool)$additionalSkinData['CapeOnClassicSkin'] : false); // Is Persona Cape on Classic Skin
 
         $this->putString(isset($additionalSkinData['CapeId']) ? $additionalSkinData['CapeId'] : '');
         $uniqId = $skinId . $skinGeometryName . "-" . microtime(true);
-        $this->putString($uniqId); // Full Skin ID
+        $this->putString($uniqId); // Full Skin ID*/
     }
 
     /**

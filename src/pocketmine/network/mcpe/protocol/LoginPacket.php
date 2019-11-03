@@ -26,9 +26,12 @@ namespace pocketmine\network\mcpe\protocol;
 #include <rules/DataPacket.h>
 
 
+use pocketmine\entity\data\SkinAnimation;
+use pocketmine\entity\Skin;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\utils\BinaryStream;
 use pocketmine\utils\MainLogger;
+use pocketmine\utils\SerializedImage;
 use pocketmine\utils\Utils;
 use function get_class;
 use function json_decode;
@@ -54,6 +57,8 @@ class LoginPacket extends DataPacket{
 	public $serverAddress;
 	/** @var string */
 	public $locale;
+	/** @var Skin $skin */
+	public $skin;
 
 	/** @var array (the "chain" index contains one or more JWTs) */
 	public $chainData = [];
@@ -83,6 +88,7 @@ class LoginPacket extends DataPacket{
 
 		try{
 			$this->decodeConnectionRequest();
+			$this->decodeSkin();
 		}catch(\Throwable $e){
 			if($this->protocol === ProtocolInfo::CURRENT_PROTOCOL){
 				throw $e;
@@ -133,6 +139,100 @@ class LoginPacket extends DataPacket{
 
 		$this->locale = $this->clientData["LanguageCode"] ?? null;
 	}
+
+	protected function decodeSkin() {
+        $skin = new Skin();
+        $skinToken = $this->clientData;
+
+        if(isset($skinToken["SkinId"])) {
+            $skin->setSkinId((string)$skinToken["SkinId"]);
+        }
+        if(isset($skinToken["CapeId"])) {
+            $skin->setCapeId((string)$skinToken["CapeId"]);
+        }
+
+        $skin->setSkinData($this->decodeImage($skinToken, "Skin"));
+        $skin->setCapeData($this->decodeImage($skinToken, "Cape"));
+
+        $premium = false;
+        $persona = false;
+        $capeOnClassic = false;
+
+        if(isset($skinToken["PremiumSkin"])) {
+            $premium = (bool)$skinToken["PremiumSkin"];
+        }
+
+        if(isset($skinToken["PersonaSkin"])) {
+            $persona = (bool)$skinToken["PersonaSkin"];
+        }
+
+        if(isset($skinToken["CapeOnClassicSkin"])) {
+            $capeOnClassic = (bool)$skinToken["CapeOnClassicSkin"];
+        }
+
+        $skin->setPremium($premium);
+        $skin->setPersona($persona);
+        $skin->setCapeOnClassic($capeOnClassic);
+
+        $skinResourcePatch = Skin::getGeometryCustomConstant();
+        $skinGeometryData = "";
+
+        if(isset($skinToken["SkinResourcePatch"])) {
+            $skinResourcePatch = $skinToken["SkinResourcePatch"];
+        }
+
+        if(isset($skinToken["SkinGeometryData"])) {
+            $skinGeometryData = $skinToken["SkinGeometryData"];
+        }
+
+        $skin->setSkinResourcePatch($skinResourcePatch);
+        $skin->setGeometryData($skinGeometryData);
+
+        if(isset($skinToken["AnimationData"])) {
+            $skin->setAnimationData(base64_decode($skinToken["AnimationData"]));
+        }
+
+        if(isset($skinToken["AnimatedImageData"])) {
+            foreach ($skinToken["AnimatedImageData"] as $tokens) {
+                $skin->animations[] = $this->decodeAnimation($tokens);
+            }
+        }
+
+        $this->skin = $skin;
+        // TODO: Animated image data
+    }
+
+    /**
+     * @param array $data
+     * @return SkinAnimation
+     */
+    protected function decodeAnimation(array $data): SkinAnimation {
+        return new SkinAnimation(new SerializedImage($data["ImageWidth"], $data["ImageHeight"], (string)base64_decode($data["Image"])), (int)$data["Type"], (float)$data["Frames"]);
+    }
+
+    /**
+     * @param array $token
+     * @param string $name
+     *
+     * @return SerializedImage
+     */
+    protected function decodeImage(array $token, string $name) {
+        $index = $name . "Data";
+        if(isset($token[$index])) {
+            $skinImage = base64_decode($token[$index]);
+            if(!$skinImage) {
+                return SerializedImage::createEmpty();
+            }
+
+            if(isset($token[$name . "ImageHeight"]) && isset($token[$name . "ImageWidth"])) {
+                return new SerializedImage((int)$token[$name . "ImageHeight"], (int)$token[$name. "ImageWidth"], $skinImage);
+            }
+
+            return SerializedImage::fromLegacy($skinImage);
+        }
+
+        return SerializedImage::createEmpty();
+    }
 
 	protected function encodePayload(){
 		//TODO

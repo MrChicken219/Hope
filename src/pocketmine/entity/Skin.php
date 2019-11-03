@@ -23,71 +23,61 @@ declare(strict_types=1);
 
 namespace pocketmine\entity;
 
-use Ahc\Json\Comment as CommentedJsonDecoder;
-use function implode;
-use function in_array;
-use function json_encode;
+use pocketmine\entity\data\SkinAnimation;
+use pocketmine\nbt\tag\ByteArrayTag;
+use pocketmine\nbt\tag\ByteTag;
+use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\nbt\tag\IntTag;
+use pocketmine\nbt\tag\StringTag;
+use pocketmine\utils\SerializedImage;
 use function strlen;
 
 class Skin{
+
 	public const ACCEPTED_SKIN_SIZES = [
 		64 * 32 * 4,
 		64 * 64 * 4,
+        128 * 64 * 4,
 		128 * 128 * 4
 	];
 
-	/** @var string */
-	private $skinId;
-	/** @var string */
+	/** @var string $skinId*/
+	private $skinId = "Standard_Custom";
+	/** @var string $skinResourcePatch */
+	private $skinResourcePatch = '{"geometry" : {"default" : "geometry.humanoid.custom"}}'; // old geometry name
+	/** @var SerializedImage */
 	private $skinData;
-	/** @var string */
+	/** @var SkinAnimation[] $animations */
+	public $animations = [];
+	/** @var string $animationData */
+    private $animationData = "";
+	/** @var string $capeId */
+	private $capeId = "";
+	/** @var SerializedImage $capeData */
 	private $capeData;
-	/** @var string */
-	private $geometryName;
-	/** @var string */
-	private $geometryData;
-	/** @var array $additionalSkinData */
-	private $additionalSkinData = [];
-
-	public function __construct(string $skinId, string $skinData, string $capeData = "", string $geometryName = "", string $geometryData = "", array $additionalSkinData = []){
-		$this->skinId = $skinId;
-		$this->skinData = $skinData;
-		$this->capeData = $capeData;
-		$this->geometryName = $geometryName;
-		$this->geometryData = $geometryData;
-		$this->additionalSkinData = $additionalSkinData;
-	}
+	/** @var string $geometryData */
+	private $geometryData = "";
+	/** @var bool $isPremium */
+	private $isPremium = false;
+	/** @var bool $isPersona */
+	private $isPersona = false;
+	/** @var bool $capeOnClassic */
+	private $capeOnClassic = false;
 
 	/**
 	 * @deprecated
 	 * @return bool
 	 */
 	public function isValid() : bool{
-		try{
-			$this->validate();
-			return true;
-		}catch(\InvalidArgumentException $e){
-			return false;
-		}
+		return true;
 	}
 
-	/**
-	 * @throws \InvalidArgumentException
-	 */
-	public function validate() : void{
-	    return; // TODO Some checks :D
-		if($this->skinId === ""){
-			throw new \InvalidArgumentException("Skin ID must not be empty");
-		}
-		$len = strlen($this->skinData);
-		if(!in_array($len, self::ACCEPTED_SKIN_SIZES, true)){
-			throw new \InvalidArgumentException("Invalid skin data size $len bytes (allowed sizes: " . implode(", ", self::ACCEPTED_SKIN_SIZES) . ")");
-		}
-		if($this->capeData !== "" and strlen($this->capeData) !== 8192){
-			throw new \InvalidArgumentException("Invalid cape data size " . strlen($this->capeData) . " bytes (must be exactly 8192 bytes)");
-		}
-		//TODO: validate geometry
-	}
+    /**
+     * @param string $skinId
+     */
+    public function setSkinId(string $skinId): void {
+        $this->skinId = $skinId;
+    }
 
 	/**
 	 * @return string
@@ -96,40 +86,208 @@ class Skin{
 		return $this->skinId;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getSkinData() : string{
+    /**
+     * @param string $skinResourcePatch
+     */
+    public function setSkinResourcePatch(?string $skinResourcePatch = null): void {
+        if($skinResourcePatch === null || strlen(trim($skinResourcePatch)) == 0) {
+            $this->skinResourcePatch = self::getGeometryCustomConstant();
+            return;
+        }
+        $this->skinResourcePatch = $skinResourcePatch;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSkinResourcePatch(): string {
+        return $this->skinResourcePatch;
+    }
+
+    /**
+     * @param SerializedImage|null $skinData
+     */
+    public function setSkinData(SerializedImage $skinData = null): void {
+        $this->skinData = $skinData;
+    }
+
+    /**
+     * @return SerializedImage
+     */
+	public function getSkinData(): SerializedImage {
 		return $this->skinData;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getCapeData() : string{
+    /**
+     * @param SerializedImage $capeData
+     */
+    public function setCapeData(SerializedImage $capeData): void {
+        $this->capeData = $capeData;
+    }
+
+    /**
+     * @return SerializedImage
+     */
+	public function getCapeData(): SerializedImage {
 		return $this->capeData;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getGeometryName() : string{
-		return $this->geometryName;
-	}
+    /**
+     * @param string $capeId
+     */
+    public function setCapeId(?string $capeId = null): void {
+        if($capeId === null || strlen(trim($capeId)) == 0) {
+            $this->capeId = "";
+            return;
+        }
+        $this->capeId = $capeId;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCapeId(): string {
+        return $this->capeId;
+    }
+
+    /**
+     * @param string $geometryData
+     */
+    public function setGeometryData(string $geometryData): void {
+        $this->geometryData = $geometryData;
+    }
 
 	/**
 	 * @return string
 	 */
-	public function getGeometryData() : string{
-		return $this->geometryData;
+	public function getGeometryData(): string{
+		return (string)$this->geometryData;
 	}
 
     /**
-     * @return array
+     * @param string $animationData
      */
-    public function getAdditionalSkinData(): array {
-        return $this->additionalSkinData;
+    public function setAnimationData(string $animationData): void {
+        $this->animationData = $animationData;
     }
+
+    /**
+     * @return string
+     */
+    public function getAnimationData(): string {
+        return (string)$this->animationData;
+    }
+
+
+
+    /**
+     * @return bool
+     */
+    public function isPremium(): bool {
+        return $this->isPremium;
+    }
+
+    /**
+     * @param bool $isPremium
+     */
+    public function setPremium(bool $isPremium = false): void {
+        $this->isPremium = $isPremium;
+    }
+
+    /**
+     * @param bool $isPersona
+     */
+    public function setPersona(bool $isPersona = false): void {
+        $this->isPersona = $isPersona;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isPersona(): bool {
+        return $this->isPersona;
+    }
+
+    /**
+     * @param bool $capeOnClassic
+     */
+    public function setCapeOnClassic(bool $capeOnClassic): void {
+        $this->capeOnClassic = $capeOnClassic;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCapeOnClassic(): bool{
+        return $this->capeOnClassic;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFullSkinId(): string {
+        return $this->getSkinId() . "_" . $this->getCapeId();
+    }
+
+    public function serializeNBT(): CompoundTag {
+        return new CompoundTag("Skin", [
+            new StringTag("Name", $this->getSkinId()),
+            new ByteArrayTag("Data", $this->getSkinData()->data),
+            new IntTag("SkinWidth", $this->getSkinData()->width), // new
+            new IntTag("SkinHeight", $this->getSkinData()->height), // new
+            new StringTag("CapeId", $this->getCapeId()), // new
+            new ByteArrayTag("CapeData", $this->getCapeData()->data),
+            new IntTag("CapeWidth", $this->getCapeData()->width), // new
+            new IntTag("CapeHeight", $this->getCapeData()->height), // new
+            new StringTag("GeometryName", $this->getSkinResourcePatch()),
+            new ByteArrayTag("GeometryData", $this->getGeometryData()),
+            new ByteTag("Premium", (int)$this->isPremium()), // new
+            new ByteTag("Persona", (int)$this->isPersona()), // new
+            new ByteTag("CapeOnClassic", (int)$this->isCapeOnClassic()) // new
+        ]);
+    }
+
+    /**
+     * @param CompoundTag $compound
+     * @return Skin
+     */
+    public static function deserializeNBT(CompoundTag $compound): Skin {
+        $skin = new Skin();
+        $skin->setSkinId($compound->getString("Name"));
+
+        if($compound->offsetExists("SkinWidth") && $compound->offsetExists("SkinHeight")) {
+            $skin->setSkinData(new SerializedImage($compound->getInt("SkinWidth"), $compound->getInt("SkinHeight"), $compound->getByteArray("Data")));
+        }
+        else {
+            $skin->setSkinData(SerializedImage::fromLegacy($compound->getByteArray("Data")));
+        }
+
+        if($compound->offsetExists("CapeId"))
+            $skin->setCapeId($compound->getString("CapeId"));
+
+        if($compound->offsetExists("CapeWidth") && $compound->offsetExists("CapeHeight")) {
+            $skin->setSkinData(new SerializedImage($compound->getInt("CapeWidth"), $compound->getInt("CapeHeight"), $compound->getByteArray("CapeData")));
+        }
+        else {
+            $skin->setSkinData(SerializedImage::fromLegacy($compound->getByteArray("CapeData")));
+        }
+
+        $skin->setSkinResourcePatch($compound->getString("GeometryName"));
+        $skin->setGeometryData($compound->getByteArray("GeometryData"));
+
+        if($compound->offsetExists("Premium")) {
+            $skin->setPremium((bool)$compound->getByte("Premium"));
+        }
+        if($compound->offsetExists("Persona")) {
+            $skin->setPersona((bool)$compound->getByte("Persona"));
+        }
+        if($compound->offsetExists("CapeOnClassic")) {
+            $skin->setCapeOnClassic((bool)$compound->getByte("CapeOnClassic"));
+        }
+
+        return $skin;
+    }
+
 
 	/**
 	 * Hack to cut down on network overhead due to skins, by un-pretty-printing geometry JSON.
@@ -138,9 +296,34 @@ class Skin{
 	 * Not only that, they are pretty-printed.
 	 * TODO: find out what model crap can be safely dropped from the packet (unless it gets fixed first)
 	 */
-	public function debloatGeometryData() : void{
-		if($this->geometryData !== ""){
-			$this->geometryData = (string) json_encode((new CommentedJsonDecoder())->decode($this->geometryData));
-		}
+	public function debloatGeometryData(): void {
+
 	}
+
+    /**
+     * @param string $geometryName
+     * @return string
+     */
+	private static function convertLegacyGeometryName(string $geometryName) {
+        return '{"geometry" : {"default" : "'.$geometryName.'"}}';
+    }
+
+    /**
+     * @param bool $slim
+     * @return string
+     */
+    public static final function getGeometryCustomConstant(bool $slim = false) {
+        return self::convertLegacyGeometryName("geometry.humanoid.custom" . ($slim ? "Slim" : ""));
+    }
+
+    /**
+     * @return Skin
+     */
+    public static function createEmpty() {
+        $skin = new Skin();
+        $skin->setSkinData(SerializedImage::fromLegacy(str_repeat("\x00", 8192)));
+        $skin->setSkinId("Standard_Custom");
+        $skin->setCapeData(SerializedImage::createEmpty());
+        return $skin;
+    }
 }

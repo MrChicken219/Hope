@@ -52,29 +52,19 @@ class PlayerListPacket extends DataPacket{
 		$count = $this->getUnsignedVarInt();
 		for($i = 0; $i < $count; ++$i){
 			$entry = new PlayerListEntry();
-
+            $entry->uuid = $this->getUUID();
 			if($this->type === self::TYPE_ADD){
-				$entry->uuid = $this->getUUID();
 				$entry->entityUniqueId = $this->getEntityUniqueId();
 				$entry->username = $this->getString();
-
-				$skinId = $this->getString();
-				$skinData = $this->getString();
-				$capeData = $this->getString();
-				$geometryName = $this->getString();
-				$geometryData = $this->getString();
-
-				$entry->skin = new Skin(
-					$skinId,
-					$skinData,
-					$capeData,
-					$geometryName,
-					$geometryData
-				);
+				// 1.12 skin
 				$entry->xboxUserId = $this->getString();
 				$entry->platformChatId = $this->getString();
-			}else{
-				$entry->uuid = $this->getUUID();
+
+
+				$this->getLInt();
+				$entry->skin = $this->getSkin();
+				$this->getBool();
+				$this->getBool();
 			}
 
 			$this->entries[$i] = $entry;
@@ -101,8 +91,9 @@ class PlayerListPacket extends DataPacket{
 
 				// 1.13
                 $this->putLInt(-1);
-                $this->putSerializedSkin($entry->skin->getSkinId(), $entry->skin->getSkinData(), $entry->skin->getGeometryName(), $entry->skin->getGeometryData(), $entry->skin->getCapeData(), $entry->skin->getAdditionalSkinData());
-			    $this->putBool(false);
+                $this->putSkin($entry->skin);
+
+                $this->putBool(false);
 			    $this->putBool(false);
 			}else{
 				$this->putUUID($entry->uuid);
