@@ -112,6 +112,7 @@ use pocketmine\network\mcpe\protocol\BlockActorDataPacket;
 use pocketmine\network\mcpe\protocol\BlockPickRequestPacket;
 use pocketmine\network\mcpe\protocol\BookEditPacket;
 use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
+use pocketmine\network\mcpe\protocol\CompletedUsingItemPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\DisconnectPacket;
@@ -2536,6 +2537,24 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							if($this->isSurvival()){
 								$this->inventory->setItemInHand($item);
 							}
+
+							if($this->startAction === -1) {
+							    $this->setDataFlag(self::DATA_FLAGS, self::DATA_FLAG_ACTION, true);
+							    $this->startAction = $this->getServer()->getTick();
+							    break;
+                            }
+
+
+							$ticksUsed = $this->getServer()->getTick() - $this->startAction;
+							$this->startAction = -1;
+
+							$pk = new CompletedUsingItemPacket();
+							$pk->itemId = $item->getId();
+							$pk->action = $item->completeAction($this, $ticksUsed);
+
+							var_dump($pk->action);
+
+							$this->dataPacket($pk);
 						}
 
 						$this->setUsingItem(true);
@@ -2662,33 +2681,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							}
 
 							return true;
-						case InventoryTransactionPacket::RELEASE_ITEM_ACTION_CONSUME:
-							$slot = $this->inventory->getItemInHand();
-
-							if($slot instanceof Consumable){
-								$ev = new PlayerItemConsumeEvent($this, $slot);
-								if($this->hasItemCooldown($slot)){
-									$ev->setCancelled();
-								}
-								$ev->call();
-
-								if($ev->isCancelled() or !$this->consumeObject($slot)){
-									$this->inventory->sendContents($this);
-									return true;
-								}
-
-								$this->resetItemCooldown($slot);
-
-								if($this->isSurvival()){
-									$slot->pop();
-									$this->inventory->setItemInHand($slot);
-									$this->inventory->addItem($slot->getResidue());
-								}
-
-								return true;
-							}
-
-							break;
 						default:
 							break;
 					}

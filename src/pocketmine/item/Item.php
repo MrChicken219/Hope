@@ -41,6 +41,7 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\NamedTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\mcpe\protocol\CompletedUsingItemPacket;
 use pocketmine\Player;
 use pocketmine\utils\Binary;
 use function array_map;
@@ -707,6 +708,16 @@ class Item implements ItemIds, \JsonSerializable{
 
 		return $this;
 	}
+
+    /**
+     * @param Player $player
+     * @param int $usedTicks
+     *
+     * @return int
+     */
+	public function completeAction(Player $player, int $usedTicks): int {
+	    return CompletedUsingItemPacket::ACTION_UNKNOWN;
+    }
 
 	/**
 	 * Returns whether this item can match any item with an equivalent ID with any meta value.

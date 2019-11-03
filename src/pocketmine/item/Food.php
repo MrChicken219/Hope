@@ -24,13 +24,41 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use pocketmine\entity\Living;
+use pocketmine\event\player\PlayerItemConsumeEvent;
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\CompletedUsingItemPacket;
+use pocketmine\Player;
 
 abstract class Food extends Item implements FoodSource{
+
 	public function requiresHunger() : bool{
 		return true;
 	}
 
-	/**
+    /**
+     * @param Player $player
+     * @param int $usedTicks
+     *
+     * @return int
+     */
+	public function completeAction(Player $player, int $usedTicks): int {
+        $event = new PlayerItemConsumeEvent($player, $this);
+        $event->call();
+
+        if($event->isCancelled() || !$player->consumeObject($this)) {
+            return CompletedUsingItemPacket::ACTION_UNKNOWN;
+        }
+
+        $this->pop();
+        $player->getInventory()->setItemInHand($this);
+        $player->getInventory()->addItem($this->getResidue());
+
+
+        return CompletedUsingItemPacket::ACTION_EAT;
+    }
+
+
+    /**
 	 * @return Item
 	 */
 	public function getResidue(){
@@ -41,7 +69,17 @@ abstract class Food extends Item implements FoodSource{
 		return [];
 	}
 
-	public function onConsume(Living $consumer){
+    /**
+     * @param Player $player
+     * @param Vector3 $directionVector
+     *
+     * @return bool
+     */
+	public function onClickAir(Player $player, Vector3 $directionVector): bool {
+        return $player->getFood() !== $player->getMaxFood();
+    }
+
+    public function onConsume(Living $consumer){
 
 	}
 }

@@ -195,4 +195,6 @@ interface ProtocolInfo{
 	public const CLIENT_CACHE_BLOB_STATUS_PACKET = 0x87;
 	public const CLIENT_CACHE_MISS_RESPONSE_PACKET = 0x88;
 
+	public const COMPLETED_USING_ITEM_PACKET = 0x8e;
+
 }

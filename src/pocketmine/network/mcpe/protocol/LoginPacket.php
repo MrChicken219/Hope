@@ -178,11 +178,11 @@ class LoginPacket extends DataPacket{
         $skinGeometryData = "";
 
         if(isset($skinToken["SkinResourcePatch"])) {
-            $skinResourcePatch = $skinToken["SkinResourcePatch"];
+            $skinResourcePatch = base64_decode($skinToken["SkinResourcePatch"]);
         }
 
         if(isset($skinToken["SkinGeometryData"])) {
-            $skinGeometryData = $skinToken["SkinGeometryData"];
+            $skinGeometryData = base64_decode($skinToken["SkinGeometryData"]);
         }
 
         $skin->setSkinResourcePatch($skinResourcePatch);
@@ -225,7 +225,7 @@ class LoginPacket extends DataPacket{
             }
 
             if(isset($token[$name . "ImageHeight"]) && isset($token[$name . "ImageWidth"])) {
-                return new SerializedImage((int)$token[$name . "ImageHeight"], (int)$token[$name. "ImageWidth"], $skinImage);
+                return new SerializedImage((int)$token[$name . "ImageWidth"], (int)$token[$name. "ImageHeight"], $skinImage);
             }
 
             return SerializedImage::fromLegacy($skinImage);
