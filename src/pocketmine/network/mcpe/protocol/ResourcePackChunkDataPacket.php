@@ -60,9 +60,10 @@ class ResourcePackChunkDataPacket extends DataPacket{
 		$this->putString($this->packId);
 		$this->putLInt($this->chunkIndex);
 		$this->putLLong($this->progress);
-		$this->putLInt(strlen($this->data));
-		if($this->protocol <= ProtocolInfo::PROTOCOL_1_12)
-		    $this->put($this->data);
+		if($this->protocol <= ProtocolInfo::PROTOCOL_1_12) {
+            $this->putLInt(strlen($this->data));
+            $this->put($this->data);
+        }
 		else
 		    $this->putString($this->data);
 	}
