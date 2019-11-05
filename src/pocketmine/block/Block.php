@@ -36,6 +36,7 @@ use pocketmine\math\RayTraceResult;
 use pocketmine\math\Vector3;
 use pocketmine\metadata\Metadatable;
 use pocketmine\metadata\MetadataValue;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
 use pocketmine\Player;
 use pocketmine\plugin\Plugin;
@@ -113,12 +114,14 @@ class Block extends Position implements BlockIds, Metadatable{
 		return $this->itemId ?? $this->getId();
 	}
 
-	/**
-	 * @internal
-	 * @return int
-	 */
-	public function getRuntimeId() : int{
-		return RuntimeBlockMapping::toStaticRuntimeId($this->getId(), $this->getDamage());
+    /**
+     * @internal
+     * @param int $protocol
+     *
+     * @return int
+     */
+	public function getRuntimeId(int $protocol = ProtocolInfo::CURRENT_PROTOCOL): int {
+		return RuntimeBlockMapping::toStaticRuntimeId($this->getId(), $this->getDamage(), $protocol);
 	}
 
 	/**

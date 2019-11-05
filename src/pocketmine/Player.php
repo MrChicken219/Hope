@@ -2158,6 +2158,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$spawnPosition = $this->getSpawn();
 
 		$pk = new StartGamePacket();
+		$pk->protocol = $this->getProtocol();
 		$pk->entityUniqueId = $this->id;
 		$pk->entityRuntimeId = $this->id;
 		$pk->playerGamemode = Player::getClientFriendlyGamemode($this->gamemode);

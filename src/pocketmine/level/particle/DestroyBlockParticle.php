@@ -26,15 +26,19 @@ namespace pocketmine\level\particle;
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelEventPacket;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class DestroyBlockParticle extends Particle{
+
+    /** @var int $protocol */
+    public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
 
 	/** @var int */
 	protected $data;
 
 	public function __construct(Vector3 $pos, Block $b){
 		parent::__construct($pos->x, $pos->y, $pos->z);
-		$this->data = $b->getRuntimeId();
+		$this->data = $b->getRuntimeId($this->protocol);
 	}
 
 	public function encode(){

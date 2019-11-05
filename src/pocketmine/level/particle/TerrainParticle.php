@@ -25,9 +25,14 @@ namespace pocketmine\level\particle;
 
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class TerrainParticle extends GenericParticle{
+
+    /** @var int $protocol */
+    public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	public function __construct(Vector3 $pos, Block $b){
-		parent::__construct($pos, Particle::TYPE_TERRAIN, $b->getRuntimeId());
+		parent::__construct($pos, Particle::TYPE_TERRAIN, $b->getRuntimeId($this->protocol));
 	}
 }

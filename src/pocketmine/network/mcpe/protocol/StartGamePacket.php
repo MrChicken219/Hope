@@ -39,10 +39,13 @@ use const pocketmine\RESOURCE_PATH;
 class StartGamePacket extends DataPacket{
 	public const NETWORK_ID = ProtocolInfo::START_GAME_PACKET;
 
-	/** @var string|null */
-	private static $blockTableCache = null;
+	/** @var string[]|null */
+	private static $blockTableCache = [];
 	/** @var string|null */
 	private static $itemTableCache = null;
+
+	/** @var int $protocol */
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
 
 	/** @var int */
 	public $entityUniqueId;
@@ -262,23 +265,24 @@ class StartGamePacket extends DataPacket{
 		$this->putBool($this->isFromWorldTemplate);
 		$this->putBool($this->isWorldTemplateOptionLocked);
 		$this->putBool($this->onlySpawnV1Villagers);
-		$this->putString(ProtocolInfo::MINECRAFT_VERSION); // 1.13
+		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13)
+		    $this->putString(ProtocolInfo::MINECRAFT_VERSION);
 
 		$this->putString($this->levelId);
 		$this->putString($this->worldName);
 		$this->putString($this->premiumWorldTemplateId);
 		$this->putBool($this->isTrial);
-		$this->putBool(false); // 1.13
+		if($this->protocol >= ProtocolInfo::PROTOCOL_1_13)
+		    $this->putBool(false); // 1.13
 		$this->putLLong($this->currentTick);
 
 		$this->putVarInt($this->enchantmentSeed);
 
 		if($this->blockTable === null){
-			if(self::$blockTableCache === null){
-				//this is a really nasty hack, but it'll do for now
-				self::$blockTableCache = self::serializeBlockTable(RuntimeBlockMapping::getBedrockKnownStates());
-			}
-			$this->put(self::$blockTableCache);
+		    if(!isset(self::$blockTableCache[$this->protocol])) {
+		        self::$blockTableCache[$this->protocol] = self::serializeBlockTable(RuntimeBlockMapping::getBedrockKnownStates($this->protocol));
+            }
+			$this->put(self::$blockTableCache[$this->protocol]);
 		}else{
 			$this->put(self::serializeBlockTable($this->blockTable));
 		}
@@ -294,7 +298,7 @@ class StartGamePacket extends DataPacket{
 		$this->putString($this->multiplayerCorrelationId);
 	}
 
-	private static function serializeBlockTable($table) : string{
+	public static function serializeBlockTable($table) : string{
 	    if(is_string($table)) {
 	        return $table;
         }

@@ -36,17 +36,20 @@ interface ProtocolInfo{
 	 * This file is generated automatically, do not edit it manually.
 	 */
 
+	public const PROTOCOL_1_12 = 361;
+	public const PROTOCOL_1_13 = 388;
+
 	/**
 	 * Actual Minecraft: PE protocol version
 	 */
-	public const CURRENT_PROTOCOL = 388;
+	public const CURRENT_PROTOCOL = self::PROTOCOL_1_13;
 
     /**
      * Supported protocols by Foxel
      */
 	public const SUPPORTED_PROTOCOLS = [
-	    361, // 1.12
-        388 // 1.13
+	    self::PROTOCOL_1_12,
+        self::PROTOCOL_1_13
     ];
 
 	/**

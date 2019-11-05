@@ -823,6 +823,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		if(!($this instanceof Player)){
 			/* we don't use Server->updatePlayerListData() because that uses batches, which could cause race conditions in async compression mode */
 			$pk = new PlayerListPacket();
+			$pk->protocol = $player->getProtocol();
 			$pk->type = PlayerListPacket::TYPE_ADD;
 			$pk->entries = [PlayerListEntry::createAdditionEntry($this->uuid, $this->id, $this->getName(), $this->skin)];
 			$player->dataPacket($pk);
@@ -847,6 +848,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 		if(!($this instanceof Player)){
 			$pk = new PlayerListPacket();
+			$pk->protocol = $player->getProtocol();
 			$pk->type = PlayerListPacket::TYPE_REMOVE;
 			$pk->entries = [PlayerListEntry::createRemovalEntry($this->uuid)];
 			$player->dataPacket($pk);

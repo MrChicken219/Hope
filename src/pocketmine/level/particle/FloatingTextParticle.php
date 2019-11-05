@@ -96,7 +96,7 @@ class FloatingTextParticle extends Particle{
 
 			$add = new PlayerListPacket();
 			$add->type = PlayerListPacket::TYPE_ADD;
-			$add->entries = [PlayerListEntry::createAdditionEntry($uuid, $this->entityId, $name, new Skin("Standard_Custom", ))];
+			$add->entries = [PlayerListEntry::createAdditionEntry($uuid, $this->entityId, $name, Skin::createEmpty())];
 			$p[] = $add;
 
 			$pk = new AddPlayerPacket();

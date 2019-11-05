@@ -37,6 +37,8 @@ class PlayerListPacket extends DataPacket{
 	public const TYPE_ADD = 0;
 	public const TYPE_REMOVE = 1;
 
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	/** @var PlayerListEntry[] */
 	public $entries = [];
 	/** @var int */
@@ -75,28 +77,28 @@ class PlayerListPacket extends DataPacket{
 		$this->putByte($this->type);
 		$this->putUnsignedVarInt(count($this->entries));
 		foreach($this->entries as $entry){
+            $this->putUUID($entry->uuid);
 			if($this->type === self::TYPE_ADD){
-				$this->putUUID($entry->uuid);
 				$this->putEntityUniqueId($entry->entityUniqueId);
 				$this->putString($entry->username);
-				/* 1.12
-				$this->putString($entry->skin->getSkinId());
-				$this->putString($entry->skin->getSkinData());
-				$this->putString($entry->skin->getCapeData());
-				$this->putString($entry->skin->getGeometryName());
-				$this->putString($entry->skin->getGeometryData());
-				*/
+				if($this->protocol <= ProtocolInfo::PROTOCOL_1_12) {
+                    $this->putString($entry->skin->getSkinId());
+                    $this->putString($entry->skin->getSkinData()->data);
+                    $this->putString($entry->skin->getCapeData()->data);
+                    $this->putString($entry->skin->getSkinResourcePatch());
+                    $this->putString($entry->skin->getGeometryData());
+                }
+
 				$this->putString($entry->xboxUserId);
 				$this->putString($entry->platformChatId);
 
-				// 1.13
-                $this->putLInt(-1);
-                $this->putSkin($entry->skin);
+                if($this->protocol >= ProtocolInfo::PROTOCOL_1_13) {
+                    $this->putLInt(-1);
+                    $this->putSkin($entry->skin);
 
-                $this->putBool(false);
-			    $this->putBool(false);
-			}else{
-				$this->putUUID($entry->uuid);
+                    $this->putBool(false);
+                    $this->putBool(false);
+                }
 			}
 		}
 	}
