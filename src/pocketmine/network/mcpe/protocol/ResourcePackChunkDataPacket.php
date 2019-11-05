@@ -33,6 +33,9 @@ use function strlen;
 class ResourcePackChunkDataPacket extends DataPacket{
 	public const NETWORK_ID = ProtocolInfo::RESOURCE_PACK_CHUNK_DATA_PACKET;
 
+	/** @var int $protocol */
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
 	/** @var string */
 	public $packId;
 	/** @var int */
@@ -46,7 +49,11 @@ class ResourcePackChunkDataPacket extends DataPacket{
 		$this->packId = $this->getString();
 		$this->chunkIndex = $this->getLInt();
 		$this->progress = $this->getLLong();
-		$this->data = $this->get($this->getLInt());
+		if($this->protocol <= ProtocolInfo::PROTOCOL_1_12)
+		    $this->data = $this->get($this->getLInt());
+		else
+		    $this->data = $this->getString();
+
 	}
 
 	protected function encodePayload(){
@@ -54,7 +61,10 @@ class ResourcePackChunkDataPacket extends DataPacket{
 		$this->putLInt($this->chunkIndex);
 		$this->putLLong($this->progress);
 		$this->putLInt(strlen($this->data));
-		$this->put($this->data);
+		if($this->protocol <= ProtocolInfo::PROTOCOL_1_12)
+		    $this->put($this->data);
+		else
+		    $this->putString($this->data);
 	}
 
 	public function handle(NetworkSession $session) : bool{

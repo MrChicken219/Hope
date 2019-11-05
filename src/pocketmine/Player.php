@@ -3078,6 +3078,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}
 
 		$pk = new ResourcePackChunkDataPacket();
+		$pk->protocol = $this->getProtocol();
 		$pk->packId = $pack->getPackId();
 		$pk->chunkIndex = $packet->chunkIndex;
 		$pk->data = $pack->getPackChunk(1048576 * $packet->chunkIndex, 1048576);
