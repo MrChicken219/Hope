@@ -2184,7 +2184,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->dataPacket($pk);
 
 		$this->sendDataPacket(new AvailableActorIdentifiersPacket());
-		$this->sendDataPacket(new BiomeDefinitionListPacket());
+
+		$biomeDefinitions = new BiomeDefinitionListPacket();
+		$biomeDefinitions->protocol = $this->getProtocol();
+		$this->sendDataPacket($biomeDefinitions);
 
 		$this->level->sendTime($this);
 

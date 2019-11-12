@@ -75,6 +75,7 @@ use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\protocol\types\BiomeDefinitions;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
 use pocketmine\network\mcpe\RakLibInterface;
@@ -1693,6 +1694,7 @@ class Server{
 			Item::initCreativeItems();
 			Biome::init();
 			RuntimeBlockMapping::init();
+			BiomeDefinitions::init();
 
 			LevelProviderManager::init();
 			if(extension_loaded("leveldb")){
