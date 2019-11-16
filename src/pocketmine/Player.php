@@ -53,6 +53,7 @@ use pocketmine\event\player\PlayerEditBookEvent;
 use pocketmine\event\player\PlayerExhaustEvent;
 use pocketmine\event\player\PlayerGameModeChangeEvent;
 use pocketmine\event\player\PlayerInteractEvent;
+use pocketmine\event\player\PlayerItemConsumeEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerJumpEvent;
 use pocketmine\event\player\PlayerKickEvent;
@@ -2687,6 +2688,27 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							}
 
 							return true;
+                        case InventoryTransactionPacket::RELEASE_ITEM_ACTION_CONSUME:
+                            $slot = $this->inventory->getItemInHand();
+                            if($slot instanceof Consumable){
+                                $ev = new PlayerItemConsumeEvent($this, $slot);
+                                if($this->hasItemCooldown($slot)){
+                                    $ev->setCancelled();
+                                }
+                                $ev->call();
+                                if($ev->isCancelled() or !$this->consumeObject($slot)){
+                                    $this->inventory->sendContents($this);
+                                    return true;
+                                }
+                                $this->resetItemCooldown($slot);
+                                if($this->isSurvival()){
+                                    $slot->pop();
+                                    $this->inventory->setItemInHand($slot);
+                                    $this->inventory->addItem($slot->getResidue());
+                                }
+                                return true;
+                            }
+                            break;
 						default:
 							break;
 					}
