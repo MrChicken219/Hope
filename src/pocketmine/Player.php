@@ -2536,35 +2536,42 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							return true;
 						}
 
-						if($item->onClickAir($this, $directionVector)){
-							$this->resetItemCooldown($item);
-							if($this->isSurvival()){
-								$this->inventory->setItemInHand($item);
-							}
-
-							if($this->getProtocol() < ProtocolInfo::PROTOCOL_1_13) {
-							    break;
+						if($this->getProtocol() < ProtocolInfo::PROTOCOL_1_13) {
+                            if($item->onClickAir($this, $directionVector)){
+                                $this->resetItemCooldown($item);
+                                if($this->isSurvival()){
+                                    $this->inventory->setItemInHand($item);
+                                }
                             }
 
-							if($this->startAction === -1) {
-							    $this->setDataFlag(self::DATA_FLAGS, self::DATA_FLAG_ACTION, true);
-							    $this->startAction = $this->getServer()->getTick();
-							    break;
+                            $this->setUsingItem(true);
+                        } else {
+                            if ($item->onClickAir($this, $directionVector)) {
+                                $this->resetItemCooldown($item);
+                                if ($this->isSurvival()) {
+                                    $this->getInventory()->setItemInHand($item);
+                                }
                             }
 
+                            if ($this->startAction === -1) {
+                                $this->setDataFlag(self::DATA_FLAGS, self::DATA_FLAG_ACTION, true);
+                                $this->startAction = $this->getServer()->getTick();
+                                return true;
+                            }
 
-							$ticksUsed = $this->getServer()->getTick() - $this->startAction;
-							$this->startAction = -1;
+                            $ticksUsed = $this->getServer()->getTick() - $this->startAction;
+                            $this->startAction = -1;
 
-							$pk = new CompletedUsingItemPacket();
-							$pk->itemId = $item->getId();
-							$pk->action = $item->completeAction($this, $ticksUsed);
-
-
-							$this->dataPacket($pk);
-						}
-
-						$this->setUsingItem(true);
+                            if($item->onUse($this, $ticksUsed)) {
+                                $completedUsingItemPacket = new CompletedUsingItemPacket();
+                                $completedUsingItemPacket->itemId = $item->getId();
+                                $completedUsingItemPacket->action = $item->completeAction($this, $ticksUsed);
+                                $this->dataPacket($completedUsingItemPacket);
+                            }
+                            else {
+                                $this->getInventory()->sendContents($this);
+                            }
+                        }
 
 						return true;
 					default:

@@ -850,6 +850,18 @@ class Item implements ItemIds, \JsonSerializable{
 		return false;
 	}
 
+    /**
+     * Called when item is used (1.13+)
+     *
+     * @param Player $player
+     * @param int $ticksUsed
+     *
+     * @return bool
+     */
+	public function onUse(Player $player, int $ticksUsed): bool {
+	    return false;
+    }
+
 	/**
 	 * Returns the number of ticks a player must wait before activating this item again.
 	 *
