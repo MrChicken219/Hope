@@ -4,7 +4,7 @@
 
 | Discord | 
 | :---: |
-| [![Discord](https://img.shields.io/discord/603295964870082574.svg?style=flat-square&label=discord&colorB=7289da)](https://discord.gg/CHj4Ect)|
+| [![Discord](https://img.shields.io/discord/603295964870082570.svg?style=flat-square&label=discord&colorB=7289da)](https://discord.gg/CHj4Ect)|
 
 ## Multi Version:
 -Support 1.10 <br />
