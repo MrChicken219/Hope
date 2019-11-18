@@ -1,4 +1,5 @@
---- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/MrChicken219/ALPE/ALPE
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/MrChicken219/ALPE
 branches:
-projects: [ALPE]
+- "1.13"
+projects: [Test]
 ...
